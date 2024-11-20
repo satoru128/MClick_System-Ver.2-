@@ -14,6 +14,9 @@ MClick_System/
 │   │   ├── save_coordinates.php （座標保存）
 │   │   └── fetch_click_coordinates.php （座標データ取得）
 │   │   └── get_click_data.php （リプレイ用データ取得）
+│   │   └── delete_latest_click.php （最新のクリックデータ取得）
+│   │   └── update_click_count.php （リプレイ用データ取得）
+│   │   └── update_latest_comment.php （データにコメントを追加）
 │   └── script/
 │       └── app.js （メインのJavaScript処理）
 └── login/

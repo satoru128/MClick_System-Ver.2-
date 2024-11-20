@@ -579,18 +579,18 @@ function displayCoordinates(coordinates) {
     table.innerHTML = `
         <thead class="table-light">
             <tr>
-                <th>時間</th>
-                <th>X座標</th>
-                <th>Y座標</th>
-                <th>コメント</th>
+                <th style="width: 20%;">時間</th>
+                <th style="width: 20%;">X座標</th>
+                <th style="width: 20%;">Y座標</th>
+                <th style="width: 40%;">コメント</th>
             </tr>
         </thead>
         <tbody>
             ${coordinates.map(coord => `
                 <tr>
                     <td>${Number(coord.click_time).toFixed(2)}秒</td>
-                    <td>${Number(coord.x_coordinate).toFixed(3)}</td>
-                    <td>${Number(coord.y_coordinate).toFixed(3)}</td>
+                    <td>${Number(coord.x_coordinate)}</td>
+                    <td>${Number(coord.y_coordinate)}</td>
                     <td class="text-break">${coord.comment || ''}</td>
                 </tr>
             `).join('')}
@@ -647,40 +647,43 @@ function handleMistakeClick() {
 //===========================================
 // クリックカウント更新（※今な実装していない）
 //===========================================
-/**
- * クリックカウント
- * @param {string} userId - ユーザーID
- * @param {string} videoId - 動画ID
- */
-function updateClickCount(userId, videoId) {
-    return fetch('./coordinate/php/update_click_count.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, video_id: videoId })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.status === "success") {
-            console.log('クリック回数を更新しました');
-        }
-        return result;
-    })
-    .catch(error => {
-        console.error('クリック回数の更新に失敗:', error);
-    });
-}
+// /**
+//  * クリックカウント
+//  * @param {string} userId - ユーザーID
+//  * @param {string} videoId - 動画ID
+//  */
+// function updateClickCount(userId, videoId) {
+//     return fetch('./coordinate/php/update_click_count.php', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({ user_id: userId, video_id: videoId })
+//     })
+//     .then(response => response.json())
+//     .then(result => {
+//         if (result.status === "success") {
+//             console.log('クリック回数を更新しました');
+//         }
+//         return result;
+//     })
+//     .catch(error => {
+//         console.error('クリック回数の更新に失敗:', error);
+//     });
+// }
 
 //===========================================
 // コメント機能
 //===========================================
-
 /**
  * コメントボタン
  */
 function handleCommentClick() {
     console.log('コメントボタンが押された');
     if (player) {
-        player.pauseVideo();  //動画を一時停止
+        // 動画を一時停止
+        player.pauseVideo();
+        
+        // 入力欄を初期化
+        document.getElementById('commentInput').value = '';
         
         // モーダルを表示
         const commentModal = new bootstrap.Modal(document.getElementById('commentModal'));
@@ -688,30 +691,43 @@ function handleCommentClick() {
     }
 }
 
-/**
- * コメント送信
+/**コメント「送信」（最新のクリックデータにコメント追加）
  */
 function handleCommentSubmit() {
-    // コメントの内容を取得
     const commentText = document.getElementById('commentInput').value;
-    const currentTime = player.getCurrentTime();
+    if (!commentText.trim()) {
+        alert('コメントを入力してください');
+        return;
+    }
 
     // コメントを保存
-    saveCoordinate(-1, -1, currentTime, commentText)  // 座標なしのコメント
-        .then(() => {
-            // モーダルを閉じて入力欄をクリア
+    fetch('./coordinate/php/update_latest_comment.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userId,
+            video_id: videoId,
+            comment: commentText
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'success') {
+            // モーダルを閉じる
             const commentModal = bootstrap.Modal.getInstance(document.getElementById('commentModal'));
             commentModal.hide();
-            document.getElementById('commentInput').value = '';
-
-            // 動画を再生して座標データを更新
-            player.playVideo();
+            
+            // テーブル表示を更新
             fetchClickCoordinates();
-        })
-        .catch(error => {
-            console.error('コメントの保存に失敗:', error);
-            alert('コメントの保存中にエラーが発生しました。');
-        });
+            
+            // 動画を再生
+            player.playVideo();
+        }
+    })
+    .catch(error => {
+        console.error('コメントの保存に失敗:', error);
+        alert('コメントの保存中にエラーが発生しました。');
+    });
 }
 
 

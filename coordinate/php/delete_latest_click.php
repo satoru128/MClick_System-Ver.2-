@@ -11,14 +11,6 @@ try {
     
     // POSTデータ取得
     $data = json_decode(file_get_contents('php://input'), true);
-    
-    // データバリデーション
-    if (!isset($data['user_id']) || !isset($data['video_id'])) {
-        throw new Exception('Required parameters are missing');
-    }
-    
-    $user_id = $data['user_id'];
-    $video_id = $data['video_id'];
 
     // トランザクション開始
     $pdo->beginTransaction();
@@ -33,9 +25,10 @@ try {
             ORDER BY id DESC 
             LIMIT 1
         ");
-        $stmt->bindParam(':user_id', $user_id);
-        $stmt->bindParam(':video_id', $video_id);
-        $stmt->execute();
+        $stmt->execute([
+            ':user_id' => $data['user_id'],
+            ':video_id' => $data['video_id']
+        ]);
         $latest = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($latest) {
@@ -44,8 +37,7 @@ try {
                 DELETE FROM click_coordinates 
                 WHERE id = :id
             ");
-            $stmt->bindParam(':id', $latest['id']);
-            $stmt->execute();
+            $stmt->execute([':id' => $latest['id']]);
 
             // クリックカウントを1減らす
                 $stmt = $pdo->prepare("
@@ -54,9 +46,10 @@ try {
                 WHERE user_id = :user_id 
                 AND video_id = :video_id
             ");
-            $stmt->bindParam(':user_id', $user_id);
-            $stmt->bindParam(':video_id', $video_id);
-            $stmt->execute();
+            $stmt->execute([
+                ':user_id' => $data['user_id'],
+                ':video_id' => $data['video_id']
+            ]);
 
             // トランザクションをコミット
             $pdo->commit();
