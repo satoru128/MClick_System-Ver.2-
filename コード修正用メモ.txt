@@ -1,0 +1,32 @@
+MClick_System/
+├── index.php （メインページ）
+├── Bootstrap/
+│   ├── css/
+│   │   └── bootstrap.min.css
+│   └── js/
+│       └── bootstrap.bundle.min.js
+├── coordinate/
+│   ├── css/
+│   │   └── style.css （カスタムスタイル、アニメーション含む）
+│   ├── php/
+│   │   ├── MYDB.php （データベース接続）
+│   │   ├── get_user_id.php （ユーザーID取得）
+│   │   ├── save_coordinates.php （座標保存）
+│   │   └── fetch_click_coordinates.php （座標データ取得）
+│   │   └── get_click_data.php （リプレイ用データ取得）
+│   └── script/
+│       └── app.js （メインのJavaScript処理）
+└── login/
+    ├── login.php
+    └── logout.php
+
+【YouTube IFrame API の一部】
+・event.data　　：状態やエラーに応じてYouTube APIが自動的に設定
+・YT.PlayerState：プレーヤーの状態を表す定数を提供
+・YT.Player 　　 ：プレーヤーを操作するためのメソッドを提供
+
+【isPlaying】
+なぜ更新するのか?
+・動画が再生中かどうかを常に把握できる
+・再生中でないときの不適切な操作を防げる
+・ユーザーの操作に適切に対応できる
