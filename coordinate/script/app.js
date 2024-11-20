@@ -611,10 +611,11 @@ function displayCoordinates(coordinates) {
  * ミスボタン（最後のクリックを取り消して巻き戻す）
  */
 function handleMistakeClick() {
-    // 再生中以外は処理しない
-    if (!isPlaying) return;
+    if (!isPlaying || !player) return;
 
-    // 最新のクリックデータを削除
+    const mistakeBtn = document.getElementById('mistakeBtn');
+    mistakeBtn.disabled = true;
+
     fetch('./coordinate/php/delete_latest_click.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -626,20 +627,19 @@ function handleMistakeClick() {
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
-            // 削除したクリックの時間まで巻き戻す
-            const clickTime = parseFloat(result.click_time);
-            const seekTime = Math.max(clickTime - 1, 0);  // 1秒前に戻す（最小値は0秒）
-            player.seekTo(seekTime, true);
-            player.playVideo();
+            showModeError('取消', '最後のクリックを取り消しました');
             
-            // 座標データ一覧を更新
             fetchClickCoordinates();
-            
-            console.log('最後のクリックを削除しました');
+            const currentTime = player.getCurrentTime();
+            player.seekTo(Math.max(currentTime - 1, 0), true);
         }
     })
     .catch(error => {
-        console.error('ミスクリックの取り消しに失敗:', error);
+        console.error('削除エラー:', error);
+        showModeError('エラー', '削除に失敗しました');
+    })
+    .finally(() => {
+        mistakeBtn.disabled = false;
     });
 }
 
@@ -809,7 +809,7 @@ function showModeError(mode, message) {
     errorToast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">
-                <strong>${mode}エラー</strong><br>
+                <strong>${mode}</strong><br>
                 ${message}
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -820,10 +820,10 @@ function showModeError(mode, message) {
     const toast = new bootstrap.Toast(errorToast);
     toast.show();
 
-    // 5秒後に自動で削除
+    // 4秒後に自動で削除
     setTimeout(() => {
         errorToast.remove();
-    }, 5000);
+    }, 4000);
 
     // チェックボックスをシェイク
     const checkbox = mode === '座標取得' ? 

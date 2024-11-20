@@ -53,6 +53,8 @@
     background-color: #f8f9fa;
 }
 
+
+
 /* エラー時のシェイクアニメーション */
 .error-shake {
     animation: shake 0.5s linear;
