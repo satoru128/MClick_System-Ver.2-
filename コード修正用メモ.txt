@@ -33,3 +33,9 @@ MClick_System/
 ・動画が再生中かどうかを常に把握できる
 ・再生中でないときの不適切な操作を防げる
 ・ユーザーの操作に適切に対応できる
+
+【click_countsテーブルの修正】
+`UNIQUE KEY unique_user_video (user_id, video_id)`
+↓
+・user_idとvideo_idの組み合わせがユニークになる
+・同じ組み合わせの場合は新規行を作らず、click_countを更新する
