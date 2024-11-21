@@ -616,7 +616,17 @@ function displayCoordinates(coordinates) {
  * ミスボタン（最後のクリックを取り消して巻き戻す）
  */
 function handleMistakeClick() {
-    if (!isPlaying || !player) return;
+    // 座標取得ボタンOFF時の処理
+    if (!isCoordinateEnabled) {
+        showModeError('通知', '座標取得モードをオンにしてください');
+        return;
+    }
+
+    // リプレイモード中は操作不可
+    if (isReplayEnabled) {
+        showModeError('通知', 'リプレイ中は取り消せません');
+        return;
+    }
 
     const mistakeBtn = document.getElementById('mistakeBtn');
     mistakeBtn.disabled = true;
@@ -744,6 +754,7 @@ function handleToggleCoordinateChange(event) {
         return;
     }
 
+    player.pauseVideo();
     // モードの切り替え
     isCoordinateEnabled = event.target.checked;
     console.log('座標取得モード: ' + (isCoordinateEnabled ? 'ON' : 'OFF'));
