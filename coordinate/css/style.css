@@ -17,6 +17,7 @@
     width: 100%;
     height: 100%;
     z-index: 0;
+    pointer-events: none !important; /* YouTubeプレーヤーのクリックイベントを無効化 */
 }
 
 #myCanvas {
@@ -25,8 +26,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
-    pointer-events: auto;
+    z-index: 2;/* プレーヤーより前面に配置 */
+    pointer-events: all !important;
+    cursor: crosshair;  /* クリック可能なことを視覚的に示す */
     background-color: transparent;
 }
 

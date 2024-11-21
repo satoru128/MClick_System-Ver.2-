@@ -50,7 +50,10 @@ function initializePlayer(videoId) {
             'disablekb': 1,   // キーボード操作を無効化
             'modestbranding': 1,  // YouTubeロゴを最小限
             'rel': 0,         // 関連動画を非表示
-            'showinfo': 0     // 動画情報を非表示
+            'showinfo': 0,     // 動画情報を非表示
+            'enablejsapi': 1,  // JavaScript APIを有効化
+            'playsinline': 1,  // インライン再生を強制
+            'iv_load_policy': 3 // アノテーションを無効化
         },
         events: {
             'onReady': onPlayerReady,  // プレーヤーの準備完了時
@@ -58,6 +61,7 @@ function initializePlayer(videoId) {
             'onError': onPlayerError  // エラー発生時
         }
     });
+    console.log('プレーヤー初期化完了');
 }
 
 // プレーヤーの準備完了時の処理
