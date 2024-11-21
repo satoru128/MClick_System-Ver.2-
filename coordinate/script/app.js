@@ -637,6 +637,11 @@ function handleMistakeClick() {
             fetchClickCoordinates();
             const currentTime = player.getCurrentTime();
             player.seekTo(Math.max(currentTime - 1, 0), true);
+        }else if (result.status === 'no_data') {
+            // クリックデータがない場合
+            showModeError('通知', 'クリックデータがありません');
+        } else {
+            showModeError('エラー', '削除に失敗しました');
         }
     })
     .catch(error => {
@@ -650,46 +655,8 @@ function handleMistakeClick() {
 
 
 //===========================================
-// クリックカウント更新（※今な実装していない）
+// クリックカウント
 //===========================================
-// /**
-//  * クリックカウント
-//  * @param {string} userId - ユーザーID
-//  * @param {string} videoId - 動画ID
-//  */
-// function updateClickCount(userId, videoId) {
-//     // API呼び出し
-//     return fetch('./coordinate/php/update_click_count.php', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ 
-//             user_id: userId, 
-//             video_id: videoId 
-//         })
-//     })
-//     .then(response => response.json())
-//     .then(result => {
-//         if (result.status === "success") {
-//             // カウントの更新に成功
-//             clickCount = result.count;
-//             console.log('クリックカウント更新:', clickCount);
-            
-//             // カウント表示を更新（オプション）
-//             const countDisplay = document.getElementById('clickCountDisplay');
-//             if (countDisplay) {
-//                 countDisplay.textContent = `クリック回数: ${clickCount}`;
-//             }
-//             return result;
-//         } else {
-//             throw new Error('カウント更新に失敗');
-//         }
-//     })
-//     .catch(error => {
-//         console.error('クリックカウント更新エラー:', error);
-//         showModeError('エラー', 'クリックカウントの更新に失敗しました');
-//     });
-// }
-
 /**
  * クリックカウントの表示を更新する関数
  * @param {number} count - 現在のクリック回数

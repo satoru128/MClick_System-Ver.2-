@@ -62,8 +62,8 @@ try {
             // 削除するデータがない
             $pdo->rollBack();
             echo json_encode([
-                'status' => 'error',
-                'message' => 'No data to delete'
+                'status' => 'no_data',
+                // 'message' => 'クリックデータがありません'
             ]);
         }
     } catch (Exception $e) {
