@@ -420,18 +420,10 @@ function saveCoordinate(x, y, clickTime) {
 }
 
 /**
- * クリック位置を赤い点で示し，フェードアウト加筆
+ * クリック位置を赤い点で示し，フェードアウト(加筆)
  * @param {number} x - X座標
  * @param {number} y - Y座標
  */
-// function visualizeClick(x, y) {
-//     const canvas = document.getElementById('myCanvas');
-//     ctx.beginPath();
-//     ctx.arc(x, y, 5, 0, 2 * Math.PI);  // 半径5の円を描画
-//     ctx.fillStyle = 'red';
-//     ctx.fill();
-// }
-
 //約1.5秒かけて消える (0.02 × 30ミリ秒 × 50回)
 function visualizeClick(x, y) { 
     const canvas = document.getElementById('myCanvas');
