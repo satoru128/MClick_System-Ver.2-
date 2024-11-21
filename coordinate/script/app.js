@@ -9,6 +9,9 @@ let videoId = null;           // 動画ID
 let ctx;                      // キャンバスコンテキスト
 let isPlaying = false;        // 再生状態
 let clickCount = 0;           //クリックカウント用
+let replayClickData = [];    // クリックデータ
+let replayIntervalId = null; // モニタリング用のインターバルID
+
 
 //===========================================
 // YouTube Player 初期化
@@ -454,9 +457,9 @@ function visualizeClick(x, y) {
 // リプレイ機能
 //=========================================== 
 /**
-* リプレイデータを取得
-* @param {string} videoId - 動画ID
-*/
+ * リプレイデータを取得
+ * @param {string} videoId - 動画ID
+ */
 function fetchReplayData(videoId) {
     console.log('リプレイデータを取得中...');
     
@@ -472,11 +475,12 @@ function fetchReplayData(videoId) {
     .then(data => {
         console.log('取得したリプレイデータ:', data);
         if (data.status === 'success') {
-            // データの形式を整える
+            // データ形式の整理（エイリアス名に合わせて修正）
             return data.clicks.map(click => ({
-                x: parseFloat(click.x_coordinate),
-                y: parseFloat(click.y_coordinate),
+                x: parseFloat(click.x),  // x_coordinate → x
+                y: parseFloat(click.y),  // y_coordinate → y
                 click_time: parseFloat(click.click_time),
+                comment: click.comment,
                 id: click.id
             }));
         }
@@ -487,56 +491,149 @@ function fetchReplayData(videoId) {
         return [];
     });
 }
- 
+
 /**
-* クリックデータの再生
-* @param {Array} clicks - 再生するクリックデータの配列
-*/
-function replayClicks(clicks) {
-    // キャンバスをクリア
+ * リプレイの初期化処理（データの取得，動画の初期化，モニタリングの開始）
+ */
+function initializeReplay() {
+    // 動画を停止して最初に巻き戻す
+    player.seekTo(0);
     clearCanvas();
     
-    // 各クリックを時間に合わせて再生
-    clicks.forEach((click, index) => {
-        setTimeout(() => {
-            if (isReplayEnabled) {  // リプレイモードがONの時のみ描画
-                drawClickWithNumber(click.x, click.y, index + 1);
+    // クリックデータの取得と再生開始
+    fetchReplayData(videoId)
+        .then(clicks => {
+            if (clicks && clicks.length > 0) {
+                replayClickData = clicks;     // データをグローバル変数に保存
+                startReplayMonitoring();      // クリック表示のモニタリング開始
+                player.pauseVideo();
+            } else {
+                showModeError('リプレイ', 'データがありません');
+                stopReplay();
             }
-        }, click.click_time * 1000);  // ミリ秒に変換
+        });
+}
+
+ /**
+ * リプレイのモニタリング開始
+ */
+function startReplayMonitoring() {
+    // 既存のモニタリングがあれば停止
+    if (replayIntervalId) {
+        clearInterval(replayIntervalId);
+    }
+    
+    // 新しいモニタリングを開始
+    replayIntervalId = setInterval(() => {
+        if (!isReplayEnabled) {
+            clearInterval(replayIntervalId);
+            return;
+        }
+        
+        const currentTime = player.getCurrentTime();
+        updateClickDisplay(currentTime);
+    }, 100);  // 100ミリ秒間隔で更新
+}
+
+/**
+ * 現在の再生時間に応じたクリック表示の更新
+ * @param {number} currentTime - 現在の再生時間（秒）
+ */
+function updateClickDisplay(currentTime) {
+    clearCanvas();
+    
+    // 現在時刻までのクリックをすべて表示
+    replayClickData.forEach((click, index) => {
+        if (click.click_time <= currentTime) {
+            drawClickWithNumber(click.x, click.y, click);
+        }
     });
 }
- 
+
 /**
-* 番号付きのクリック位置を描画
-* @param {number} x - X座標
-* @param {number} y - Y座標
-* @param {number} number - 表示番号
-*/
-function drawClickWithNumber(x, y, number) {
-    const canvas = document.getElementById('myCanvas');
-    const radius = 10;
+ * リプレイの停止
+ */
+function stopReplay() {
+    clearCanvas();
+    if (replayIntervalId) {
+        clearInterval(replayIntervalId);
+        replayIntervalId = null;
+    }
+    replayClickData = [];
+    isReplayEnabled = false;
+    document.getElementById('replayBtn').checked = false;
+}
+
+/**
+ * クリック位置を描画
+ * @param {number} x - X座標
+ * @param {number} y - Y座標
+ * @param {Object} clickData - クリックの詳細データ
+ */
+function drawClickWithNumber(x, y, clickData) {
     
-    // 円を描画
+    // 赤い丸を描画
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';  // 半透明の赤
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';  // 濃い目の赤色
     ctx.fill();
     
-    // 番号を描画
-    ctx.fillStyle = 'white'; 
-    ctx.font = 'bold 12px Arial';  // フォントスタイル
+    // 白いIDを描画
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(number.toString(), x, y);  // 番号を中央に表示
+    ctx.fillText(clickData.id.toString(), x, y);
 }
- 
+
 /**
-* キャンバスをクリア
-*/
+ * ツールチップの表示
+ * @param {number} x - マウスX座標
+ * @param {number} y - マウスY座標
+ * @param {string} comment - 表示するコメント
+ */
+function showClickTooltip(x, y, comment) {
+    let tooltip = document.getElementById('clickTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'clickTooltip';
+        document.body.appendChild(tooltip);
+    }
+
+    tooltip.textContent = comment;
+    tooltip.style.cssText = `
+        position: absolute;
+        top: ${y + 10}px;
+        left: ${x + 10}px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+        pointer-events: none;
+        display: block;
+    `;
+}
+
+/**
+ * ツールチップを非表示
+ */
+function hideClickTooltip() {
+    const tooltip = document.getElementById('clickTooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
+/**
+ * キャンバスをクリア
+ */
 function clearCanvas() {
     const canvas = document.getElementById('myCanvas');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
+
 
 
 //===========================================
@@ -764,31 +861,36 @@ function handleReplayChange(event) {
         return;
     }
 
+    player.pauseVideo();
     isReplayEnabled = event.target.checked;
     console.log('リプレイモード: ' + (isReplayEnabled ? 'ON' : 'OFF'));
 
     // リプレイモードONの場合
     if (isReplayEnabled) {
-        player.pauseVideo();  // 一時停止
-        player.seekTo(0);     // 動画を最初に戻す
-        
-        // クリックデータの取得と再生
-        fetchReplayData(videoId)
-            .then(clicks => {
-                if (clicks && clicks.length > 0) {
-                    replayClicks(clicks);  // クリックデータの再生
-                } else {
-                    console.log('リプレイするデータがありません');
-                    showModeError('リプレイ', 'データがありません');
-                    isReplayEnabled = false;
-                    event.target.checked = false;
-                }
-            });
+        initializeReplay();  // リプレイ開始
     } else {
-        clearCanvas();  // キャンバスをクリア
+        stopReplay();       // リプレイ停止
     }
+    // if (isReplayEnabled) {
+    //     player.pauseVideo();  // 一時停止
+    //     player.seekTo(0);     // 動画を最初に戻す
+        
+    //     // クリックデータの取得と再生
+    //     fetchReplayData(videoId)
+    //         .then(clicks => {
+    //             if (clicks && clicks.length > 0) {
+    //                 replayClicks(clicks);  // クリックデータの再生
+    //             } else {
+    //                 console.log('リプレイするデータがありません');
+    //                 showModeError('リプレイ', 'データがありません');
+    //                 isReplayEnabled = false;
+    //                 event.target.checked = false;
+    //             }
+    //         });
+    // } else {
+    //     clearCanvas();  // キャンバスをクリア
+    // }
 }
-
 
 //===========================================
 // エラー表示処理
