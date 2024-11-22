@@ -53,6 +53,9 @@
 
 #coordinate-data th {
     background-color: #f8f9fa;
+    position: sticky; /* 固定ヘッダーに設定 */
+    top: 0; /* スクロール時の固定位置 */
+    z-index: 2; /* ヘッダーを前面に表示 */
 }
 
 /* ツールチップ */

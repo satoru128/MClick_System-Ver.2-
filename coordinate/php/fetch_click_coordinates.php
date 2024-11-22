@@ -11,9 +11,18 @@ try {
     // データベースに接続
     $pdo = db_connect();
     
-    // クリック時間順にデータを取得
-    $stmt = $pdo->prepare("SELECT * FROM click_coordinates ORDER BY click_time ASC");
-    $stmt->execute();
+    // セッションから現在の動画IDを取得
+    session_start();
+    $video_id = $_SESSION['video_id'];
+    
+    // 特定の動画IDに対応するデータのみを取得
+    $stmt = $pdo->prepare("
+        SELECT id, click_time, x_coordinate, y_coordinate, comment 
+        FROM click_coordinates 
+        WHERE video_id = :video_id
+        ORDER BY click_time ASC
+    ");
+    $stmt->execute([':video_id' => $video_id]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([
@@ -24,4 +33,3 @@ try {
 } catch (Exception $e) {
     echo json_encode(['status' => 'error']);
 }
-?>
