@@ -119,8 +119,8 @@
                             <textarea id="commentInput" class="form-control" rows="3" placeholder="ここにコメントを入力"></textarea>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                             <button type="button" class="btn btn-primary" onclick="handleCommentSubmit()">送信</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                         </div>
                     </div>
                 </div>

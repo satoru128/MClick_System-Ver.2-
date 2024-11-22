@@ -55,7 +55,20 @@
     background-color: #f8f9fa;
 }
 
-
+/* ツールチップ */
+#clickTooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    pointer-events: none;
+    display: none;  /* 初期状態 */
+    width: 200px; /* 幅 */
+    white-space: normal; /* 複数行表示を許可 */
+}
 
 /* エラー時のシェイクアニメーション */
 .error-shake {

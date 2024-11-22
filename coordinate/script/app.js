@@ -177,20 +177,22 @@ function setupAnnotationControls() {
     }
  
     // コメント送信ボタン
-    const commentSubmit = document.getElementById('commentSubmit');
-    if (commentSubmit) {
-        commentSubmit.addEventListener('click', handleCommentSubmit);
-    } else {
-        console.error('コメント送信ボタンが見つかりません');
-    }
+    // const commentSubmit = document.getElementById('commentSubmit');
+    // if (commentSubmit) {
+    //     commentSubmit.addEventListener('click', handleCommentSubmit);
+    // } else {
+    //     console.error('コメント送信ボタンが見つかりません');
+    // }
  
     // コメントキャンセルボタン
-    const commentCancel = document.getElementById('commentCancel');
-    if (commentCancel) {
-        commentCancel.addEventListener('click', () => {
-            player.playVideo();  // キャンセル時に再生再開
-        });
-    }
+    // const commentCancel = document.getElementById('commentCancel');
+    // if (commentCancel) {
+    //     commentCancel.addEventListener('click', () => {
+    //         player.playVideo();  // キャンセル時に再生再開
+    //     });
+    // } else {
+    //     console.error('コメントキャンセルボタンが見つかりません');
+    // }
 }
 
 //===========================================
@@ -458,7 +460,6 @@ function visualizeClick(x, y) {
 //=========================================== 
 /**
  * リプレイデータを取得
- * @param {string} videoId - 動画ID
  */
 function fetchReplayData(videoId) {
     console.log('リプレイデータを取得中...');
@@ -475,10 +476,9 @@ function fetchReplayData(videoId) {
     .then(data => {
         console.log('取得したリプレイデータ:', data);
         if (data.status === 'success') {
-            // データ形式の整理（エイリアス名に合わせて修正）
             return data.clicks.map(click => ({
-                x: parseFloat(click.x),  // x_coordinate → x
-                y: parseFloat(click.y),  // y_coordinate → y
+                x: parseFloat(click.x),
+                y: parseFloat(click.y),
                 click_time: parseFloat(click.click_time),
                 comment: click.comment,
                 id: click.id
@@ -543,11 +543,14 @@ function updateClickDisplay(currentTime) {
     clearCanvas();
     
     // 現在時刻までのクリックをすべて表示
-    replayClickData.forEach((click, index) => {
+    replayClickData.forEach(click => {
         if (click.click_time <= currentTime) {
             drawClickWithNumber(click.x, click.y, click);
         }
     });
+
+    // すべてのクリックポイントに対するホバーイベントを設定
+    setupHoverEvents();
 }
 
 /**
@@ -571,14 +574,15 @@ function stopReplay() {
  * @param {Object} clickData - クリックの詳細データ
  */
 function drawClickWithNumber(x, y, clickData) {
+    const radius = 8;
     
-    // 赤い丸を描画
+    // 赤い円を描画
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';  // 濃い目の赤色
+    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
     ctx.fill();
     
-    // 白いIDを描画
+    // IDを描画（白色）
     ctx.fillStyle = 'white';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'center';
@@ -587,12 +591,70 @@ function drawClickWithNumber(x, y, clickData) {
 }
 
 /**
+ * ホバーイベント設定（すべてのクリックポイントに対して）
+ */
+function setupHoverEvents() {
+    const canvas = document.getElementById('myCanvas');
+    
+    // 既存のイベントリスナーを削除
+    canvas.removeEventListener('mousemove', handleCanvasHover);
+    
+    // 新しいイベントリスナーを追加
+    canvas.addEventListener('mousemove', handleCanvasHover);
+}
+
+/**
+ * キャンバス全体のホバーイベントハンドラ
+ * @param {MouseEvent} event - マウスイベント
+ */
+function handleCanvasHover(event) {
+    const canvas = document.getElementById('myCanvas');
+    const rect = canvas.getBoundingClientRect();
+
+    // マウス位置をキャンバス内の座標に変換
+    // event.clientX = ブラウザの左端からの距離
+    // rect.left = キャンバスの左端までの距離
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    let hovered = false;
+
+    // 現在表示中のすべての赤丸をチェック
+    replayClickData.forEach(click => {
+        if (click.click_time <= player.getCurrentTime()) {
+            // マウスと赤丸の距離を計算
+            const distance = Math.sqrt(
+                Math.pow(mouseX - click.x, 2) + 
+                Math.pow(mouseY - click.y, 2)
+            );
+            
+            // マウスが赤丸の上にある場合
+            if (distance <= 8) {
+                hovered = true;
+                const circleX = click.x + rect.left;
+                const circleY = click.y + rect.top;
+                showClickTooltip(
+                    circleX + 4,
+                    circleY + 4,
+                    click.comment || 'コメントなし'
+                );
+            }
+        }
+    });
+
+    // どの円の上にもマウスがない場合
+    if (!hovered) {
+        hideClickTooltip();
+    }
+}
+
+/**
  * ツールチップの表示
- * @param {number} x - マウスX座標
- * @param {number} y - マウスY座標
+ * @param {number} x - 表示位置のX座標
+ * @param {number} y - 表示位置のY座標
  * @param {string} comment - 表示するコメント
  */
 function showClickTooltip(x, y, comment) {
+    // ツールチップの要素を取得
     let tooltip = document.getElementById('clickTooltip');
     if (!tooltip) {
         tooltip = document.createElement('div');
@@ -600,20 +662,33 @@ function showClickTooltip(x, y, comment) {
         document.body.appendChild(tooltip);
     }
 
+    // コメントを設定
     tooltip.textContent = comment;
-    tooltip.style.cssText = `
-        position: absolute;
-        top: ${y + 10}px;
-        left: ${x + 10}px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        z-index: 1000;
-        pointer-events: none;
-        display: block;
-    `;
+    tooltip.style.display = 'block';
+
+    // ウィンドウのサイズを取得（画面端での位置調整用）
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // ツールチップのサイズを取得
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+
+    // 基準位置（赤丸の右下）から表示位置を計算
+    let posX = x;
+    let posY = y;
+
+    // 画面端をはみ出す場合
+    if (posX + tooltipWidth > windowWidth) {
+        posX = x - tooltipWidth - 8;  // 左側に表示
+    }
+    if (posY + tooltipHeight > windowHeight) {
+        posY = y - tooltipHeight - 8;  // 上側に表示
+    }
+
+    // 計算した位置にツールチップを表示
+    tooltip.style.left = `${posX}px`;
+    tooltip.style.top = `${posY}px`;
 }
 
 /**
