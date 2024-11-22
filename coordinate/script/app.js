@@ -540,20 +540,20 @@ function startReplayMonitoring() {
  * @param {number} currentTime - 現在の再生時間（秒）
  */
 function updateClickDisplay(currentTime) {
+    if (!player || !replayClickData) return;
+
     clearCanvas();
     
-    // 現在時刻までのクリックをすべて表示
+    // 現在時刻までのクリックを表示
     replayClickData.forEach(click => {
-        // 表示するクリックデータの時間条件
-        if (click.click_time <= currentTime) {
-            // 新しく表示されるポイントかどうかの判定
-            const isNewPoint = currentTime - click.click_time < 0.1;  // 0.1秒以内なら新しいポイント
-            drawClickWithNumber(click.x, click.y, click, isNewPoint);
+        // 現在の再生時間からクリック時間を引いた差が1秒以内のものだけ表示
+        const timeSinceClick = currentTime - click.click_time;
+        if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
+            drawClickWithNumber(click.x, click.y, click);
         }
     });
 
-    // すべてのクリックポイントに対するホバーイベントを設定
-    setupHoverEvents();
+    setupHoverEvents();  // ホバー効果は表示中の点に対してのみ有効
 }
 
 /**
@@ -572,46 +572,20 @@ function stopReplay() {
 
 /**
  * クリック位置の描画
- * @param {number} x - X座標
- * @param {number} y - Y座標
- * @param {Object} clickData - クリックの詳細データ
- * @param {boolean} isNewPoint - 新しく表示されるポイントかどうか
  */
-function drawClickWithNumber(x, y, clickData, isNewPoint) {
-    const radius = 8;
-
-    if (isNewPoint) {
-        // 新しいポイントの場合、フェードアウト効果を適用
-        let opacity = 1.0;
-        const fadeInterval = setInterval(() => {
-            opacity -= 0.02;
-            
-            if (opacity <= 0.7) {
-                clearInterval(fadeInterval);
-                drawPoint(0.7);
-            } else {
-                drawPoint(opacity);
-            }
-        }, 30);
-    } else {
-        // 既存のポイントは通常の透明度で表示
-        drawPoint(0.7);
-    }
-
-    function drawPoint(opacity) {
-        // 赤い丸を描画
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`;
-        ctx.fill();
-        
-        // IDを描画
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(clickData.id.toString(), x, y);
-    }
+function drawClickWithNumber(x, y, clickData) {
+    // 赤い丸を描画
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fill();
+    
+    // IDを描画
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(clickData.id.toString(), x, y);
 }
 
 /**

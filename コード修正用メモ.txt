@@ -1,27 +1,45 @@
-MClick_System/
+C:\xampp\htdocs\MClick_System\
 ├── index.php （メインページ）
-├── Bootstrap/
+├── Bootstrap/(フレームワーク)
 │   ├── css/
 │   │   └── bootstrap.min.css
 │   └── js/
 │       └── bootstrap.bundle.min.js
+│
 ├── coordinate/
 │   ├── css/
-│   │   └── style.css （カスタムスタイル、アニメーション含む）
+│   │   └── style.css （カスタムスタイル，アニメーション）
 │   ├── php/
 │   │   ├── MYDB.php （データベース接続）
 │   │   ├── get_user_id.php （ユーザーID取得）
 │   │   ├── save_coordinates.php （座標保存）
-│   │   └── fetch_click_coordinates.php （座標データ取得）
-│   │   └── get_click_data.php （リプレイ用データ取得）
-│   │   └── delete_latest_click.php （最新のクリックデータ取得）
-│   │   └── update_click_count.php （リプレイ用データ取得）
+│   │   ├── fetch_click_coordinates.php （座標データ取得）
+│   │   ├── get_click_data.php （リプレイ用データ取得）
+│   │   ├── delete_latest_click.php （最新のクリックデータ取得）
 │   │   └── update_latest_comment.php （データにコメントを追加）
 │   └── script/
 │       └── app.js （メインのJavaScript処理）
-└── login/
-    ├── login.php
-    └── logout.php
+│
+├── login/
+│   ├── login.php(ログインページ)
+│   ├── login_process.php(ログイン処理を行うスクリプト)
+│   ├── session.php(セッション管理スクリプト)
+│   └── logout.php(ログアウト処理を行うスクリプト)
+│
+└── user_registration\
+    ├── php\
+    |   ├── common.php(共通の関数を定義)
+    |   ├── check_password.php(パスワードをチェックするスクリプト)
+    |   ├── index.php(ユーザー登録のトップ画面)
+    |   ├── post_data.php(データを投稿するためのスクリプト)
+    |   ├── user_delete.php(ユーザーを削除するスクリプト)
+    |   ├── user_edit.php(ユーザー情報を編集するためのスクリプト)
+    |   ├── user_input.php(ユーザー情報を入力するためのスクリプト)
+    |   └── user_update.php(ユーザー情報を更新するスクリプト)
+    └── common\
+        ├── html_functions.php(HTML出力用の関数を定義)
+        ├── dbmanager.php(データベース管理クラス)
+        └── data_check.php(データチェックを行うスクリプト)
 
 【YouTube IFrame API の一部】
 ・event.data　　：状態やエラーに応じてYouTube APIが自動的に設定
@@ -39,3 +57,44 @@ MClick_System/
 ↓
 ・user_idとvideo_idの組み合わせがユニークになる
 ・同じ組み合わせの場合は新規行を作らず、click_countを更新する
+
+
+【ディレクトリ構造修正案】
+C:\xampp\htdocs\MClick_System\
+├── public\ (公開ファイル置き場)
+│   ├── index.php (メインページ)
+│   ├── assets\
+│   │   ├── css\
+│   │   │   ├── bootstrap.min.css
+│   │   │   └── style.css (カスタムCSS)
+│   │   └── js\
+│   │       └── bootstrap.bundle.min.js
+│   └── coordinate_js\
+│       └── app.js (クリック管理のJavaScript)
+│
+├── app\ (アプリケーションロジック)
+│   ├── coordinate\ 
+│   │   ├── MYDB.php (データベース接続)
+│   │   ├── get_user_id.php (ユーザーID取得)
+│   │   ├── save_coordinates.php (座標保存)
+│   │   ├── fetch_click_coordinates.php (座標データ取得)
+│   │   ├── get_click_data.php (リプレイ用データ取得)
+│   │   ├── delete_latest_click.php (最新クリックデータ削除)
+│   │   └── update_latest_comment.php (コメント更新)
+│   ├── login\ 
+│   │   ├── login.php (ログインページ)
+│   │   ├── login_process.php (ログイン処理)
+│   │   ├── session.php (セッション管理)
+│   │   └── logout.php (ログアウト処理)
+│   └── user_registration\
+│       ├── common.php (共通関数)
+│       ├── check_password.php (パスワードチェック)
+│       ├── index.php (ユーザー登録画面)
+│       ├── post_data.php (データ投稿)
+│       ├── user_delete.php (ユーザー削除)
+│       ├── user_edit.php (ユーザー編集)
+│       ├── user_input.php (ユーザー情報入力)
+│       └── user_update.php (ユーザー更新)
+│
+└── config\
+    └── config.php (設定ファイル: DB接続や環境変数)
