@@ -76,6 +76,10 @@ function onPlayerReady(event) {
     initializeCanvas();     // キャンバスの初期化
     initializeControls();   // コントロールの初期化
     fetchClickCoordinates();  // 座標データの取得
+
+    // タイムライングラフの初期化を追加
+    const timelineGraph = new TimelineGraph();
+    timelineGraph.initialize();
 }
 
 function onPlayerStateChange(event) {
@@ -175,24 +179,6 @@ function setupAnnotationControls() {
     } else {
         console.error('コメントボタンがない');
     }
- 
-    // コメント送信ボタン
-    // const commentSubmit = document.getElementById('commentSubmit');
-    // if (commentSubmit) {
-    //     commentSubmit.addEventListener('click', handleCommentSubmit);
-    // } else {
-    //     console.error('コメント送信ボタンが見つかりません');
-    // }
- 
-    // コメントキャンセルボタン
-    // const commentCancel = document.getElementById('commentCancel');
-    // if (commentCancel) {
-    //     commentCancel.addEventListener('click', () => {
-    //         player.playVideo();  // キャンセル時に再生再開
-    //     });
-    // } else {
-    //     console.error('コメントキャンセルボタンが見つかりません');
-    // }
 }
 
 //===========================================
@@ -863,7 +849,8 @@ function handleCommentClick() {
     }
 }
 
-/**コメント「送信」（最新のクリックデータにコメント追加）
+/**
+ * コメント「送信」（最新のクリックデータにコメント追加）
  */
 function handleCommentSubmit() {
     const commentText = document.getElementById('commentInput').value;
@@ -946,25 +933,6 @@ function handleReplayChange(event) {
     } else {
         stopReplay();       // リプレイ停止
     }
-    // if (isReplayEnabled) {
-    //     player.pauseVideo();  // 一時停止
-    //     player.seekTo(0);     // 動画を最初に戻す
-        
-    //     // クリックデータの取得と再生
-    //     fetchReplayData(videoId)
-    //         .then(clicks => {
-    //             if (clicks && clicks.length > 0) {
-    //                 replayClicks(clicks);  // クリックデータの再生
-    //             } else {
-    //                 console.log('リプレイするデータがありません');
-    //                 showModeError('リプレイ', 'データがありません');
-    //                 isReplayEnabled = false;
-    //                 event.target.checked = false;
-    //             }
-    //         });
-    // } else {
-    //     clearCanvas();  // キャンバスをクリア
-    // }
 }
 
 //===========================================
@@ -1013,3 +981,4 @@ function showModeError(mode, message) {
         checkbox.classList.remove('error-shake');
     }, 500);
 }
+

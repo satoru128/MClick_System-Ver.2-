@@ -4,11 +4,19 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>動画アノテーションシステム</title>
+        
+        <!-- スタイルシート -->
         <link href="./Bootstrap/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="./coordinate/css/style.css">
+        <!-- Bootstrap Bundle (JS) -->
+        <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
+        <!-- YouTube API -->
         <script src="https://www.youtube.com/iframe_api"></script>
-        <!-- キャッシュ対策 -->
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- カスタムスクリプト -->
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
+        <script src="./analysis/js/timelineGraph.js"></script>
     </head>
     <body class="bg-light">
         <?php
@@ -72,6 +80,15 @@
                             <div>
                                 <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
                                 <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 分析セクション -->
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">クリック分析</h5>
+                            <div style="height: 400px;">  <!-- グラフの高さを固定 -->
+                                <canvas id="timeline-graph"></canvas>
                             </div>
                         </div>
                     </div>
