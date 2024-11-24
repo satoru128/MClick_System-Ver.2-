@@ -814,7 +814,6 @@ function renderUserSelect() {
                 }
                 
                 selectedUsers.add(e.target.value);
-                // 新しい色を割り当て
                 const nextColorIndex = userColorAssignments.size;
                 userColorAssignments.set(e.target.value, nextColorIndex);
             } else {
@@ -829,13 +828,24 @@ function renderUserSelect() {
                 });
             }
             
+            // 色プレビューの更新
+            updateColorPreviews();
             fetchClickCoordinates();
             updateSelectedUsersDisplay();
-            // renderUserSelect(); // 無限ループを防ぐため、この行をコメントアウト
         });
     });
-
     updateSelectedUsersDisplay();
+}
+
+/**
+ * ドロップダウンメニュー内の色プレビューを更新
+ */
+function updateColorPreviews() {
+    allUsers.forEach(user => {
+        const colorPreview = document.querySelector(`#user-${user.user_id}`).parentElement.querySelector('.color-preview');
+        const colorIndex = userColorAssignments.get(user.user_id);
+        colorPreview.style.backgroundColor = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
+    });
 }
 
 /**
