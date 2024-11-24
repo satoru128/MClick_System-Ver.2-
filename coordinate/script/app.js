@@ -9,9 +9,17 @@ let videoId = null;           // 動画ID
 let ctx;                      // キャンバスコンテキスト
 let isPlaying = false;        // 再生状態
 let clickCount = 0;           //クリックカウント用
-let replayClickData = [];    // クリックデータ
+let replayClickData = {};    // クリックデータ
 let replayIntervalId = null; // モニタリング用のインターバルID
-
+let selectedUsers = new Set(); // 選択されたユーザーのIDを保持
+let allUsers = []; // 全ユーザーのリストを保持
+// クリック座標表示用の色の定義
+const USER_COLORS = [
+    { bg: 'rgba(255, 200, 200, 0.7)', text: '#000000' }, // 薄い赤
+    { bg: 'rgba(200, 200, 255, 0.7)', text: '#000000' }, // 薄い青
+    { bg: 'rgba(200, 255, 200, 0.7)', text: '#000000' }  // 薄い緑
+];
+let userColorAssignments = new Map(); // ユーザーIDと割り当てられた色の管理用
 
 //===========================================
 // YouTube Player 初期化
@@ -19,6 +27,7 @@ let replayIntervalId = null; // モニタリング用のインターバルID
 function onYouTubeIframeAPIReady() {
     console.log('YouTube API Ready');           // VideoID取得前の準備確認ログ
     videoId = document.getElementById('player').getAttribute('data-video-id');
+    window.videoId = videoId;  // windowオブジェクトにも設定
     console.log('Retrieved Video ID:', videoId);// VideoID取得後の確認ログ
 
     // ユーザーIDの取得
@@ -71,15 +80,16 @@ function initializePlayer(videoId) {
 function onPlayerReady(event) {
     console.log('Player ready');
     console.log('Video title:', player.getVideoData().title);
+    console.log('初期化時の値確認:', {
+        videoId: window.videoId,
+        userId: window.userId
+    });
 
     // 各機能の初期化
     initializeCanvas();     // キャンバスの初期化
     initializeControls();   // コントロールの初期化
+    initializeUserSelect(); // ユーザー選択機能の初期化（追加）
     fetchClickCoordinates();  // 座標データの取得
-
-    // タイムライングラフの初期化を追加
-    const timelineGraph = new TimelineGraph();
-    timelineGraph.initialize();
 }
 
 function onPlayerStateChange(event) {
@@ -445,60 +455,64 @@ function visualizeClick(x, y) {
 // リプレイ機能
 //=========================================== 
 /**
- * リプレイデータを取得
- */
-function fetchReplayData(videoId) {
-    console.log('リプレイデータを取得中...');
-    
-    return fetch('./coordinate/php/get_click_data.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            video_id: videoId,
-            user_id: userId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('取得したリプレイデータ:', data);
-        if (data.status === 'success') {
-            return data.clicks.map(click => ({
-                x: parseFloat(click.x),
-                y: parseFloat(click.y),
-                click_time: parseFloat(click.click_time),
-                comment: click.comment,
-                id: click.id
-            }));
-        }
-        return [];
-    })
-    .catch(error => {
-        console.error('リプレイデータの取得に失敗:', error);
-        return [];
-    });
-}
-
-/**
  * リプレイの初期化処理（データの取得，動画の初期化，モニタリングの開始）
  */
 function initializeReplay() {
+    // 選択されているユーザーが0の場合
+    if (selectedUsers.size === 0) {
+        showModeError('リプレイ', 'ユーザーを選択してください');
+        stopReplay();
+        return;
+    }
+
     // 動画を停止して最初に巻き戻す
     player.seekTo(0);
     clearCanvas();
     
-    // クリックデータの取得と再生開始
-    fetchReplayData(videoId)
-        .then(clicks => {
-            if (clicks && clicks.length > 0) {
-                replayClickData = clicks;     // データをグローバル変数に保存
-                startReplayMonitoring();      // クリック表示のモニタリング開始
-                player.pauseVideo();
-            } else {
-                showModeError('リプレイ', 'データがありません');
-                stopReplay();
+    // 選択された全ユーザーのクリックデータを取得
+    Promise.all(Array.from(selectedUsers).map(userId => 
+        fetch('./coordinate/php/get_click_data.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                video_id: videoId,
+                user_id: userId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                return {
+                    userId: userId,
+                    clicks: data.clicks
+                };
+            }
+            return null;
+        })
+    ))
+    .then(results => {
+        replayClickData = {};
+        results.forEach(result => {
+            if (result) {
+                replayClickData[result.userId] = result.clicks;
             }
         });
+        
+        if (Object.keys(replayClickData).length > 0) {
+            startReplayMonitoring();
+            player.pauseVideo();
+        } else {
+            showModeError('リプレイ', 'データが見つかりませんでした');
+            stopReplay();
+        }
+    })
+    .catch(error => {
+        console.error('リプレイデータの取得に失敗:', error);
+        showModeError('エラー', 'データの取得に失敗しました');
+        stopReplay();
+    });
 }
+
 
  /**
  * リプレイのモニタリング開始
@@ -522,24 +536,78 @@ function startReplayMonitoring() {
 }
 
 /**
- * 現在の再生時間に応じたクリック表示の更新
- * @param {number} currentTime - 現在の再生時間（秒）
+ * クリック表示の更新（複数ユーザー対応）
  */
 function updateClickDisplay(currentTime) {
     if (!player || !replayClickData) return;
 
     clearCanvas();
     
-    // 現在時刻までのクリックを表示
-    replayClickData.forEach(click => {
-        // 現在の再生時間からクリック時間を引いた差が1秒以内のものだけ表示
-        const timeSinceClick = currentTime - click.click_time;
-        if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
-            drawClickWithNumber(click.x, click.y, click);
-        }
+    // 選択されたユーザーのデータを表示
+    Object.entries(replayClickData).forEach(([userId, clicks]) => {
+        // allUsersの中でのインデックスを取得して色を決定
+        const userIndex = allUsers.findIndex(user => user.user_id === userId);
+        const colorInfo = USER_COLORS[userIndex + 1];  // インデックスは0から始まるため+1
+        
+        clicks.forEach(click => {
+            const timeSinceClick = currentTime - click.click_time;
+            if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
+                drawReplayClick(
+                    click.x, 
+                    click.y, 
+                    colorInfo.bg, 
+                    click.comment,
+                    click
+                );
+            }
+        });
     });
+}
 
-    setupHoverEvents();  // ホバー効果は表示中の点に対してのみ有効
+/**
+ * リプレイ用のクリック描画（ID表示付き）
+ * コメント表示位置を円の右下に固定
+ */
+function drawReplayClick(x, y, color, comment, clickData) {
+    // クリック円の描画部分
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, 2 * Math.PI);  // 半径8px
+    ctx.fillStyle = color;              // 塗りつぶし色（USER_COLORSから）
+    ctx.fill();
+    ctx.strokeStyle = '#000000';        // 円の輪郭色（黒）
+    ctx.lineWidth = 1;                  // 輪郭の太さ
+    ctx.stroke();
+
+    // IDのスタイル
+    ctx.fillStyle = '#000000';          // ID文字色（黒）
+    ctx.font = 'bold 10px Arial';       // フォントスタイル
+    ctx.textAlign = 'center';           // テキストの水平位置
+    ctx.textBaseline = 'middle';        // テキストの垂直位置
+    
+    // コメントがある場合のみホバー効果を設定
+    if (comment) {
+        const canvas = document.getElementById('myCanvas');
+        const rect = canvas.getBoundingClientRect();
+        
+        canvas.addEventListener('mousemove', function(e) {
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const distance = Math.sqrt(
+                Math.pow(mouseX - x, 2) + 
+                Math.pow(mouseY - y, 2)
+            );
+            
+            if (distance <= 8) {
+                // 円の中心から4px右、4px下の位置にツールチップを表示
+                const tooltipX = x + rect.left + 4;
+                const tooltipY = y + rect.top + 4;
+                showClickTooltip(tooltipX, tooltipY, comment);
+            } else {
+                hideClickTooltip();
+            }
+        });
+    }
 }
 
 /**
@@ -551,7 +619,7 @@ function stopReplay() {
         clearInterval(replayIntervalId);
         replayIntervalId = null;
     }
-    replayClickData = [];
+    replayClickData = {};
     isReplayEnabled = false;
     document.getElementById('replayBtn').checked = false;
 }
@@ -572,63 +640,6 @@ function drawClickWithNumber(x, y, clickData) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(clickData.id.toString(), x, y);
-}
-
-/**
- * ホバーイベント設定（すべてのクリックポイントに対して）
- */
-function setupHoverEvents() {
-    const canvas = document.getElementById('myCanvas');
-    
-    // 既存のイベントリスナーを削除
-    canvas.removeEventListener('mousemove', handleCanvasHover);
-    
-    // 新しいイベントリスナーを追加
-    canvas.addEventListener('mousemove', handleCanvasHover);
-}
-
-/**
- * キャンバス全体のホバーイベントハンドラ
- * @param {MouseEvent} event - マウスイベント
- */
-function handleCanvasHover(event) {
-    const canvas = document.getElementById('myCanvas');
-    const rect = canvas.getBoundingClientRect();
-
-    // マウス位置をキャンバス内の座標に変換
-    // event.clientX = ブラウザの左端からの距離
-    // rect.left = キャンバスの左端までの距離
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    let hovered = false;
-
-    // 現在表示中のすべての赤丸をチェック
-    replayClickData.forEach(click => {
-        if (click.click_time <= player.getCurrentTime()) {
-            // マウスと赤丸の距離を計算
-            const distance = Math.sqrt(
-                Math.pow(mouseX - click.x, 2) + 
-                Math.pow(mouseY - click.y, 2)
-            );
-            
-            // マウスが赤丸の上にある場合
-            if (distance <= 8) {
-                hovered = true;
-                const circleX = click.x + rect.left;
-                const circleY = click.y + rect.top;
-                showClickTooltip(
-                    circleX + 4,
-                    circleY + 4,
-                    click.comment || 'コメントなし'
-                );
-            }
-        }
-    });
-
-    // どの円の上にもマウスがない場合
-    if (!hovered) {
-        hideClickTooltip();
-    }
 }
 
 /**
@@ -693,42 +704,236 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-
-
 //===========================================
-// 座標データの取得と表示
+// ユーザー選択機能の追加
 //===========================================
 /**
- * PHPからデータを取得しテーブル形式で表示
+ * ユーザー選択機能の初期化
  */
-function fetchClickCoordinates() {
-    console.log('データ取得中...'); // 処理開始ログ
-    fetch('./coordinate/php/fetch_click_coordinates.php')
+function initializeUserSelect() {
+    // ユーザー選択UI要素の作成
+    const userSelectDiv = document.createElement('div');
+    userSelectDiv.className = 'mb-3';
+    userSelectDiv.innerHTML = `
+        <div class="d-flex align-items-center mb-2">
+            <h6 class="me-3 mb-0">表示するユーザー：</h6>
+            <div id="user-select"></div>
+        </div>
+    `;
+    
+    // 座標データ表示領域の前に挿入
+    const coordDataDiv = document.getElementById('coordinate-data');
+    coordDataDiv.parentNode.insertBefore(userSelectDiv, coordDataDiv);
+
+    // ユーザー一覧の取得と表示
+    fetchUserList();
+}
+
+/**
+ * ユーザー一覧の取得
+ */
+function fetchUserList() {
+    fetch('./coordinate/php/get_user_id.php?mode=all')
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'success') { // データ取得成功
-                displayCoordinates(data.data); // テーブルに表示
-            } else {
-                console.log('座標データがゼロ'); 
+            if (data.status === 'success') {
+                allUsers = data.users;
+                // 以下の行を削除
+                // selectedUsers.add(data.current_user);
+                renderUserSelect();
+                fetchClickCoordinates();
             }
         })
         .catch(error => {
-            console.error('座標データの取得失敗:', error); 
+            console.error('ユーザー一覧の取得失敗:', error);
+            showModeError('エラー', 'ユーザー一覧の取得に失敗しました');
         });
 }
 
+/**
+ * ユーザー選択UIの作成（ドロップダウン形式）
+ */
+function renderUserSelect() {
+    const container = document.getElementById('user-select');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" 
+                    type="button" 
+                    id="userDropdown" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false">
+                表示するユーザーを選択 (最大3名)
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="userDropdown" style="max-height: 200px; overflow-y: auto;">
+                ${allUsers.map(user => {
+                    const colorIndex = userColorAssignments.get(user.user_id);
+                    const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
+                    return `
+                        <li>
+                            <div class="dropdown-item">
+                                <div class="form-check">
+                                    <input class="form-check-input user-checkbox" 
+                                           type="checkbox" 
+                                           id="user-${user.user_id}" 
+                                           value="${user.user_id}"
+                                           ${selectedUsers.has(user.user_id) ? 'checked' : ''}>
+                                    <label class="form-check-label" for="user-${user.user_id}">
+                                        <span class="color-preview" style="
+                                            display: inline-block;
+                                            width: 12px;
+                                            height: 12px;
+                                            margin-right: 5px;
+                                            background-color: ${color};
+                                            border-radius: 50%;
+                                            border: 1px solid #ccc;
+                                        "></span>
+                                        ${user.name} (${user.user_id})
+                                    </label>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                }).join('')}
+            </ul>
+        </div>
+        <div id="selected-users-display" class="mt-2 small text-muted"></div>
+    `;
+
+    // チェックボックスのイベント設定
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function(e) {
+            if (e.target.checked) {
+                // 選択数の制限チェック
+                if (selectedUsers.size >= 3) {
+                    e.preventDefault();
+                    e.target.checked = false;
+                    showModeError('制限', '最大3名まで選択可能です');
+                    return;
+                }
+                
+                selectedUsers.add(e.target.value);
+                // 新しい色を割り当て
+                const nextColorIndex = userColorAssignments.size;
+                userColorAssignments.set(e.target.value, nextColorIndex);
+            } else {
+                selectedUsers.delete(e.target.value);
+                userColorAssignments.delete(e.target.value);
+                
+                // 残りのユーザーの色を再割り当て
+                const remainingUsers = Array.from(selectedUsers);
+                userColorAssignments.clear();
+                remainingUsers.forEach((userId, index) => {
+                    userColorAssignments.set(userId, index);
+                });
+            }
+            
+            fetchClickCoordinates();
+            updateSelectedUsersDisplay();
+            // renderUserSelect(); // 無限ループを防ぐため、この行をコメントアウト
+        });
+    });
+
+    updateSelectedUsersDisplay();
+}
 
 /**
-* 座標データをテーブル形式で表示
-* @param {Array} coordinates - 表示する座標データの配列
-*/
+ * 選択されているユーザーの表示を更新
+ */
+function updateSelectedUsersDisplay() {
+    const displayElement = document.getElementById('selected-users-display');
+    if (selectedUsers.size === 0) {
+        displayElement.textContent = 'ユーザーが選択されていません';
+        return;
+    }
+
+    const selectedInfo = Array.from(selectedUsers)
+        .map(id => {
+            const user = allUsers.find(u => u.user_id === id);
+            const colorIndex = userColorAssignments.get(id);
+            // 色が割り当てられていない場合のデフォルト処理を追加
+            const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : '#000000';
+            return `<span style="color: ${color}">${user ? user.name : id}</span>`;
+        })
+        .join(', ');
+    
+    displayElement.innerHTML = `選択中: ${selectedInfo}`;
+}
+
+/**
+ * リプレイ時の円の描画
+ */
+function updateClickDisplay(currentTime) {
+    if (!player || !replayClickData) return;
+
+    clearCanvas();
+    
+    Object.entries(replayClickData).forEach(([userId, clicks]) => {
+        const colorIndex = userColorAssignments.get(userId);
+        if (colorIndex === undefined) return; // 色が割り当てられていない場合はスキップ
+        
+        const colorInfo = USER_COLORS[colorIndex];
+        clicks.forEach(click => {
+            const timeSinceClick = currentTime - click.click_time;
+            if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
+                drawReplayClick(
+                    click.x, 
+                    click.y, 
+                    colorInfo.bg, 
+                    click.comment,
+                    click
+                );
+            }
+        });
+    });
+}
+
+function fetchClickCoordinates() {
+    console.log('データ取得中...'); 
+    
+    // 選択されているユーザーがいない場合の処理
+    if (selectedUsers.size === 0) {
+        const container = document.getElementById('coordinate-data');
+        container.innerHTML = '<p class="text-center">ユーザーを選択してください</p>';
+        return;
+    }
+
+    // POSTデータの準備
+    const postData = {
+        user_ids: Array.from(selectedUsers),
+        video_id: videoId
+    };
+
+    fetch('./coordinate/php/fetch_click_coordinates.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            displayCoordinates(data.data);
+        }
+    })
+    .catch(error => {
+        console.error('座標データの取得失敗:', error);
+    });
+}
+
+/**
+ * 座標データをテーブル形式で表示（色分け対応）
+ */
 function displayCoordinates(coordinates) {
     const container = document.getElementById('coordinate-data');
     if (!container) return;
- 
-    // テーブル作成のHTML
+
+    // デバッグ用
+    console.log('Current color assignments:', Array.from(userColorAssignments.entries()));
+
     const table = document.createElement('table');
-    table.className = 'table table-striped';  // Bootstrap
+    table.className = 'table';
+
     table.innerHTML = `
         <thead class="table-light">
             <tr>
@@ -740,25 +945,47 @@ function displayCoordinates(coordinates) {
             </tr>
         </thead>
         <tbody>
-            ${coordinates.map(coord => `
-                <tr>
-                    <td>${coord.id}</td>
-                    <td>${Number(coord.click_time).toFixed(2)}s</td>
-                    <td>${Number(coord.x_coordinate)}</td>
-                    <td>${Number(coord.y_coordinate)}</td>
-                    <td class="text-break">${coord.comment || ''}</td>
-                </tr>
-            `).join('')}
+            ${coordinates.map(coord => {
+                // ユーザーの色を取得
+                const colorIndex = userColorAssignments.get(coord.user_id);
+                // デバッグ用
+                console.log('Coordinate:', coord, 'Color Index:', colorIndex);
+                
+                // 色が割り当てられている場合のみ背景色を設定
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${coord.id}</td>
+                        <td>${Number(coord.click_time).toFixed(2)}s</td>
+                        <td>${Number(coord.x_coordinate)}</td>
+                        <td>${Number(coord.y_coordinate)}</td>
+                        <td class="text-break">${coord.comment || ''}</td>
+                    </tr>
+                `;
+            }).join('')}
         </tbody>
     `;
- 
-    // テーブル表示
+
     container.innerHTML = '';
     container.appendChild(table);
- }
+}
 
+/**
+ * 背景色の明度を計算（文字色の自動調整用）
+ * @param {string} color - HSL色文字列
+ * @returns {number} 明度（0-1）
+ */
+function getLuminance(color) {
+    // HSL形式の色から明度（L）を抽出
+    const match = color.match(/hsl\(\d+,\s*\d+%,\s*(\d+)%\)/);
+    if (match) {
+        return parseInt(match[1], 10) / 100;
+    }
+    return 0.5; // デフォルト値
+}
 
- //===========================================
+//===========================================
 // ミスボタン
 //===========================================
 

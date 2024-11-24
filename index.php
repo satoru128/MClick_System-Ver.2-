@@ -12,11 +12,8 @@
         <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
         <!-- YouTube API -->
         <script src="https://www.youtube.com/iframe_api"></script>
-        <!-- Chart.js -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <!-- カスタムスクリプト -->
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
-        <script src="./analysis/js/timelineGraph.js"></script>
     </head>
     <body class="bg-light">
         <?php
@@ -83,15 +80,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- 分析セクション -->
-                    <div class="card mt-3">
-                        <div class="card-body">
-                            <h5 class="card-title">クリック分析</h5>
-                            <div style="height: 400px;">  <!-- グラフの高さを固定 -->
-                                <canvas id="timeline-graph"></canvas>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!--右側：コントロールパネル-->
@@ -118,6 +106,15 @@
                     <div class="card mt-3">
                         <div class="card-body">
                             <h5 class="card-title">クリック座標データ</h5>
+                            <!-- ユーザー選択部分を追加 -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h6 class="me-3 mb-0">表示するユーザー：</h6>
+                                    <div id="user-select" class="d-flex flex-wrap gap-2">
+                                        <!-- ユーザー選択チェックボックスの追加 -->
+                                    </div>
+                                </div>
+                            </div>
                             <div id="coordinate-data" class="table-responsive"></div>
                         </div>
                     </div>
@@ -145,6 +142,5 @@
         </div>
         <!--JavaScript-->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>
