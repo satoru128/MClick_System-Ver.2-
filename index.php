@@ -42,9 +42,9 @@
 
         <div class="container mt-3">
             <div class="row">
-                <!--左側：メインコンテンツ-->
+                <!--左側-->
                 <div class="col-lg-8">
-                    <!--動画プレイヤーとキャンバス-->
+                    <!--動画表示とキャンバス-->
                     <div class="card">
                         <div class="card-body">
                             <div id="video-container" class="position-relative">
@@ -57,7 +57,7 @@
                     <!--動画コントロール-->
                     <div class="card mt-3">
                         <div class="card-body">
-                            <!--動画下コントロール-->
+                            <!--動画下のコントロール-->
                             <div class="mb-3">
                                 <div class="btn-group" role="group">
                                     <button id="playBtn" class="btn btn-primary">再生</button>
@@ -82,7 +82,7 @@
                     </div>
                 </div>
 
-                <!--右側：コントロールパネル-->
+                <!--右側-->
                 <div class="col-lg-4">
                     <!--アノテーション制御-->
                     <div class="card">
@@ -109,7 +109,7 @@
                             <!-- ユーザー選択部分を追加 -->
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
-                                    <h6 class="me-3 mb-0">表示するユーザー：</h6>
+                                    <!-- <h6 class="me-3 mb-0">表示するユーザー：</h6> -->
                                     <div id="user-select" class="d-flex flex-wrap gap-2">
                                         <!-- ユーザー選択チェックボックスの追加 -->
                                     </div>

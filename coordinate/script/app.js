@@ -959,7 +959,7 @@ function displayCoordinates(coordinates) {
                 // ユーザーの色を取得
                 const colorIndex = userColorAssignments.get(coord.user_id);
                 // デバッグ用
-                console.log('Coordinate:', coord, 'Color Index:', colorIndex);
+                // console.log('Coordinate:', coord, 'Color Index:', colorIndex);
                 
                 // 色が割り当てられている場合のみ背景色を設定
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;

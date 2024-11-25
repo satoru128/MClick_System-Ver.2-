@@ -96,6 +96,7 @@
     z-index: 1050;
 }
 
+
 /* クリック時の視覚的フィードバック用 */
 @keyframes border-flash {
     0% { border-color: red; }
