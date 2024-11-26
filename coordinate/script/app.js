@@ -347,6 +347,11 @@ function initializeCanvas() {
 * @param {Event} event - クリックイベント
 */
 function handleCanvasClick(event) {
+    // 範囲選択中は処理しない
+    if (isDrawingRange) {
+        return;
+    }
+    
     // 座標取得モードがOFFの場合は処理しない
     if (!isCoordinateEnabled) {
         console.log('座標取得モード：OFF');
@@ -1244,13 +1249,28 @@ function showCommentModal(type) {
     });
 
     // モーダルが閉じられる時の処理
-    modal.addEventListener('hidden.bs.modal', () => {
-        resetModalState();
-    });
+    modal.addEventListener('hidden.bs.modal', handleModalClose);
 
     // モーダル表示
     const commentModal = new bootstrap.Modal(modal);
     commentModal.show();
+}
+
+/**
+ * モーダルが閉じられたときの処理
+ * @param {Event} e - モーダルのイベント
+ */
+function handleModalClose(e) {
+    // モーダルが送信ボタンで閉じられた場合は何もしない
+    if (e.target.querySelector('#commentInput').dataset.submitted === 'true') {
+        return;
+    }
+    
+    // 一時データをクリア
+    tempSelectionData = null;
+
+    // モーダルの状態をリセット
+    resetModalState();
 }
 
 /**
@@ -1277,28 +1297,9 @@ function resetModalState() {
 
     // bodyタグのスタイルをリセット
     document.body.classList.remove('modal-open');
-    document.body.removeAttribute('style');  // style属性を完全に削除
-
-    // スクロールを有効化
+    document.body.removeAttribute('style');
     document.body.style.overflow = 'auto';
     document.body.style.paddingRight = '0';
-}
-
-/**
- * モーダルが閉じられたときの処理
- */
-function handleModalClose(e) {
-    // モーダルが送信ボタンで閉じられた場合は何もしない
-    if (e.target.querySelector('#commentInput').dataset.submitted === 'true') {
-        return;
-    }
-    
-    // 一時データをクリア
-    tempSelectionData = null;
-
-    // キャンバスをクリア（範囲選択の矩形が残っている場合に備えて）
-    const canvas = document.getElementById('myCanvas');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 //===========================================
@@ -1420,6 +1421,7 @@ function initializeContextMenu() {
         contextMenu.style.left = `${e.clientX}px`;
         contextMenu.style.top = `${e.clientY}px`;
         
+        const canvas = e.target;
         rangeStartX = e.clientX - canvas.getBoundingClientRect().left;
         rangeStartY = e.clientY - canvas.getBoundingClientRect().top;
     });
@@ -1472,44 +1474,84 @@ function initializeContextMenu() {
  */
 function startRangeSelection() {
     const canvas = document.getElementById('myCanvas');
-    isDrawingRange = true; // 範囲選択モードを開始
+    isDrawingRange = true;
 
-    // マウスの移動を監視して選択範囲をプレビュー表示
+    // 最初のクリックで開始位置を設定
+    function onFirstClick(e) {
+        // 通常のクリックイベントを防止
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = canvas.getBoundingClientRect();
+        rangeStartX = e.clientX - rect.left;
+        rangeStartY = e.clientY - rect.top;
+
+        // 開始位置が設定されたら、次のクリックのリスナーを設定
+        canvas.removeEventListener('click', onFirstClick);
+        canvas.addEventListener('click', onSecondClick);
+
+        // マウス移動時の範囲プレビュー表示を開始
+        canvas.addEventListener('mousemove', onMouseMove);
+    }
+
+    // マウス移動時の範囲プレビュー
     function onMouseMove(e) {
         if (!isDrawingRange) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const currentX = e.clientX - rect.left;
         const currentY = e.clientY - rect.top;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 選択範囲を描画
-        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)'; // 半透明の青
-        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)'; // 濃い青の枠
+        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)';
+        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
         ctx.lineWidth = 2;
 
-        // 開始位置から現在位置までの矩形を描画
         const width = currentX - rangeStartX;
         const height = currentY - rangeStartY;
         ctx.fillRect(rangeStartX, rangeStartY, width, height);
         ctx.strokeRect(rangeStartX, rangeStartY, width, height);
     }
 
-    // マウスボタンを離したときの処理
-    function onMouseUp(e) {
-        if (!isDrawingRange) return;
-        // 選択範囲の確定
-        endSelection(e);
-        // イベントリスナーの削除
+    // 2回目のクリックで範囲を確定
+    function onSecondClick(e) {
+        // 通常のクリックイベントを防止
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = canvas.getBoundingClientRect();
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
+
+        // 範囲選択データを保存
+        tempSelectionData = {
+            type: 'range',
+            data: {
+                startX: Math.min(rangeStartX, endX),
+                startY: Math.min(rangeStartY, endY),
+                width: Math.abs(endX - rangeStartX),
+                height: Math.abs(endY - rangeStartY),
+                time: player.getCurrentTime()
+            }
+        };
+
+        // イベントリスナーを削除
+        canvas.removeEventListener('click', onSecondClick);
         canvas.removeEventListener('mousemove', onMouseMove);
-        canvas.removeEventListener('mouseup', onMouseUp);
+        
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 範囲選択モードを終了
+        isDrawingRange = false;
+
+        // コメント入力モーダルを表示
+        showCommentModal('range');
     }
 
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseup', onMouseUp);
+    // 最初のクリックのリスナーを設定
+    canvas.addEventListener('click', onFirstClick);
 }
-
 
 /**
  * 3．範囲選択の終了処理
@@ -1533,11 +1575,11 @@ function endSelection(e) {
     tempSelectionData = {
         type: 'range',
         data: {
-            startX: Math.min(rangeStartX, endX),
-            startY: Math.min(rangeStartY, endY),
-            width: Math.abs(endX - rangeStartX),
-            height: Math.abs(endY - rangeStartY),
-            time: player.getCurrentTime()
+            startX: Math.min(rangeStartX, endX),  // 左上のX座標
+            startY: Math.min(rangeStartY, endY),  // 左上のY座標
+            width: Math.abs(endX - rangeStartX),  // 範囲の幅
+            height: Math.abs(endY - rangeStartY), // 範囲の高さ
+            time: player.getCurrentTime()         // 記録時間
         }
     };
 
