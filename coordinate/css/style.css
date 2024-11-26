@@ -129,13 +129,12 @@
 
 
 
-
-/* クリック時の視覚的フィードバック用 */
-/* @keyframes border-flash {
+/* シーン記録時の視覚的フィードバック用 */
+@keyframes border-flash {
     0% { border-color: red; }
     100% { border-color: transparent; }
 }
 
 .border-flash {
     animation: border-flash 0.5s ease-out;
-} */
+}

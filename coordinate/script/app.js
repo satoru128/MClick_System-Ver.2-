@@ -13,6 +13,8 @@ let replayClickData = {};    // クリックデータ
 let replayIntervalId = null; // モニタリング用のインターバルID
 let selectedUsers = new Set(); // 選択されたユーザーのIDを保持
 let allUsers = []; // 全ユーザーのリストを保持
+let tempSelectionData = null;  // 一時的な選択データを保持
+
 // クリック座標表示用の色の定義
 const USER_COLORS = [
     { bg: 'rgba(255, 200, 200, 0.7)', text: '#000000' }, // 薄い赤
@@ -341,7 +343,7 @@ function initializeCanvas() {
 }
 
 /**
-* キャンバスクリック時の処理
+* 座標取得クリックイベント（左クリック）
 * @param {Event} event - クリックイベント
 */
 function handleCanvasClick(event) {
@@ -350,25 +352,32 @@ function handleCanvasClick(event) {
         console.log('座標取得モード：OFF');
         return;
     }
- 
-    // イベントの伝播を止める（これがないと他のクリックイベントも動く）
+
+    // リプレイモード中は処理しない
+    if (isReplayEnabled) {
+        return;
+    }
+
+    // 範囲選択中は処理しない
+    if (isDrawingRange) {
+        return;
+    }
+
+    // イベントの伝播を止める
     event.preventDefault();
     event.stopPropagation();
  
     // クリック座標の計算
     const canvas = event.target;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;  // キャンバス内のX座標
-    const y = event.clientY - rect.top;   // キャンバス内のY座標
-    const clickTime = player.getCurrentTime();  // クリック時の動画再生時間
- 
-    // デバッグ用確認ログ
-    console.log('クリック座標:', { x, y, clickTime });
- 
-    /// 座標の保存
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const clickTime = player.getCurrentTime();
+
+    // 座標の保存
     saveCoordinate(x, y, clickTime)
         .then(result => {
-            console.log('座標の保存成功', result);
+            console.log('座標保存成功:', result);
             visualizeClick(x, y);  // クリック位置を可視化
             return fetchClickCoordinates();  // 座標データ一覧を更新
         })
@@ -376,7 +385,7 @@ function handleCanvasClick(event) {
             console.error('座標の保存に失敗:', error);
             alert('座標の保存中にエラーが発生しました。');
         });
- }
+}
 
 /**
  * 座標データをサーバーに保存
@@ -1090,58 +1099,77 @@ function handleCommentClick() {
 }
 
 /**
- * コメント「送信」（最新のクリックデータにコメント追加）
+ * コメント送信の処理
  */
 function handleCommentSubmit() {
     const commentText = document.getElementById('commentInput').value;
+    const modalTitle = document.querySelector('#commentModal .modal-title').textContent;
+
     if (!commentText.trim()) {
         alert('コメントを入力してください');
         return;
     }
 
-    // コメントの保存先を判断
-    const modalTitle = document.querySelector('#commentModal .modal-title').textContent;
     let endpoint;
-    
-    switch (modalTitle) {
-        case '範囲選択のコメント':
-            endpoint = './coordinate/php/update_range_comment.php';
-            break;
-        case 'シーン記録のコメント':
-            endpoint = './coordinate/php/update_scene_comment.php';
-            break;
-        default:
+    let postData;
+
+    switch(modalTitle) {
+        case 'クリック座標のコメント':
             endpoint = './coordinate/php/update_latest_comment.php';
+            postData = {
+                user_id: userId,
+                video_id: videoId,
+                comment: commentText
+            };
+            break;
+        
+        case '範囲選択のコメント':
+        case 'シーン記録のコメント':
+            if (!tempSelectionData) return;
+            
+            endpoint = tempSelectionData.type === 'range' 
+                ? './coordinate/php/save_range_selection.php'
+                : './coordinate/php/save_scene.php';
+            
+            postData = {
+                ...tempSelectionData.data,
+                user_id: userId,
+                video_id: videoId,
+                comment: commentText
+            };
             break;
     }
 
-    // コメントを保存
     fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user_id: userId,
-            video_id: videoId,
-            comment: commentText
-        })
+        body: JSON.stringify(postData)
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
-            const commentModal = bootstrap.Modal.getInstance(document.getElementById('commentModal'));
+            // モーダルを完全に閉じる
+            const modal = document.getElementById('commentModal');
+            const commentModal = bootstrap.Modal.getInstance(modal);
             commentModal.hide();
-            
-            // 入力欄をクリア
-            document.getElementById('commentInput').value = '';
-            
-            // モーダルを閉じる
-            commentModal.hide();
-            
-            // 成功メッセージを表示
-            showModeError('保存', 'コメントを保存しました');
-            
+
+            // モーダルの状態をリセット
+            resetModalState();
+
             // 動画を再生
             player.playVideo();
+
+            // 範囲選択やシーン記録の場合は視覚的フィードバック
+            if (modalTitle !== 'クリック座標のコメント') {
+                const videoContainer = document.getElementById('video-container');
+                videoContainer.classList.add('border-flash');
+                setTimeout(() => {
+                    videoContainer.classList.remove('border-flash');
+                }, 500);
+            }
+            
+            // データを更新
+            fetchClickCoordinates();
         }
     })
     .catch(error => {
@@ -1151,25 +1179,127 @@ function handleCommentSubmit() {
 }
 
 /**
- * コメント入力モーダル「範囲選択」or「シーン」
- * @param {string} type - 'range'または'scene'を指定
+ * コメントモーダルの表示
+ * @param {string} type - 'coordinate'（通常クリック）, 'range'（範囲選択）, 'scene'（シーン記録）
  */
 function showCommentModal(type) {
     const modal = document.getElementById('commentModal');
     const titleElement = modal.querySelector('.modal-title');
+    const commentInput = document.getElementById('commentInput');
+    const modalBody = modal.querySelector('.modal-body');
     
-    // タイトルの設定
-    if (type === 'range') {
-        titleElement.textContent = '範囲選択のコメント';
-    } else if (type === 'scene') {
-        titleElement.textContent = 'シーン記録のコメント';
+    // 既存の文字数カウンターを削除
+    const existingCounter = document.getElementById('charCount');
+    if (existingCounter) {
+        existingCounter.remove();
     }
+
+    // 入力欄をクリア
+    commentInput.value = '';
     
-    // モーダルを表示
+    // タイプに応じてタイトル設定
+    switch(type) {
+        case 'coordinate':
+            titleElement.textContent = 'クリック座標のコメント';
+            break;
+        case 'range':
+            titleElement.textContent = '範囲選択のコメント';
+            break;
+        case 'scene':
+            titleElement.textContent = 'シーン記録のコメント';
+            break;
+    }
+
+    // 文字数カウンターの追加
+    const charCountDiv = document.createElement('div');
+    charCountDiv.id = 'charCount';
+    charCountDiv.className = 'mt-2 text-muted small';
+    charCountDiv.innerHTML = '残り文字数: <span>100</span>文字';
+    modalBody.appendChild(charCountDiv);
+
+    // 文字数制限とカウンター更新の設定
+    commentInput.maxLength = 100;
+    const updateCharCount = () => {
+        const remaining = 100 - commentInput.value.length;
+        const countSpan = charCountDiv.querySelector('span');
+        countSpan.textContent = remaining;
+        countSpan.style.color = remaining < 20 ? '#dc3545' : '';
+    };
+
+    // 入力イベントのリスナーを設定
+    commentInput.addEventListener('input', updateCharCount);
+    
+    // Enterキーでの送信
+    commentInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.ctrlKey) {
+            e.preventDefault();
+            document.querySelector('#commentModal .btn-primary').click();
+        }
+    });
+
+    // モーダル表示時の処理
+    modal.addEventListener('shown.bs.modal', () => {
+        commentInput.focus();
+        updateCharCount();
+    });
+
+    // モーダルが閉じられる時の処理
+    modal.addEventListener('hidden.bs.modal', () => {
+        resetModalState();
+    });
+
+    // モーダル表示
     const commentModal = new bootstrap.Modal(modal);
     commentModal.show();
 }
 
+/**
+ * モーダル関連の状態をリセット
+ */
+function resetModalState() {
+    // 入力内容をクリア
+    const commentInput = document.getElementById('commentInput');
+    if (commentInput) {
+        commentInput.value = '';
+    }
+
+    // カウンター要素を削除
+    const charCount = document.getElementById('charCount');
+    if (charCount) {
+        charCount.remove();
+    }
+
+    // モーダル背景を削除
+    const modalBackdrop = document.querySelector('.modal-backdrop');
+    if (modalBackdrop) {
+        modalBackdrop.remove();
+    }
+
+    // bodyタグのスタイルをリセット
+    document.body.classList.remove('modal-open');
+    document.body.removeAttribute('style');  // style属性を完全に削除
+
+    // スクロールを有効化
+    document.body.style.overflow = 'auto';
+    document.body.style.paddingRight = '0';
+}
+
+/**
+ * モーダルが閉じられたときの処理
+ */
+function handleModalClose(e) {
+    // モーダルが送信ボタンで閉じられた場合は何もしない
+    if (e.target.querySelector('#commentInput').dataset.submitted === 'true') {
+        return;
+    }
+    
+    // 一時データをクリア
+    tempSelectionData = null;
+
+    // キャンバスをクリア（範囲選択の矩形が残っている場合に備えて）
+    const canvas = document.getElementById('myCanvas');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 
 //===========================================
 // モード切り替え（座標取得，リプレイ）
@@ -1267,46 +1397,33 @@ function showModeError(mode, message) {
 // 右クリック
 //===========================================
 /**
- * プルダウンメニューの表示
+ * 1. コンテキストメニューの初期化と表示制御
  */
 function initializeContextMenu() {
     const canvas = document.getElementById('myCanvas');
-    
-    // 右クリックメニューのHTML要素を作成
-    const menuHtml = `
-        <div id="customContextMenu" class="context-menu" style="display: none;">
-            <div class="context-menu-item" data-action="range">
-                <i class="bi bi-square"></i>範囲選択
-            </div>
-            <div class="context-menu-divider"></div>
-            <div class="context-menu-item" data-action="scene">
-                <i class="bi bi-camera"></i>シーン記録
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', menuHtml);
-    
     const contextMenu = document.getElementById('customContextMenu');
 
-    // キャンバス上での右クリック処理
+    // 右クリック処理
     canvas.addEventListener('contextmenu', function(e) {
-        e.preventDefault();  // ブラウザのデフォルト右クリックメニューを無効化
-        e.stopPropagation(); // イベントの伝播を止める
-
-        // 動画を一時停止
-        if (player && player.pauseVideo) {
-            player.pauseVideo();
+        // 座標取得モードがオフ、またはリプレイモード中は右クリックメニューを表示しない
+        if (!isCoordinateEnabled || isReplayEnabled) {
+            e.preventDefault(); // ブラウザのデフォルト右クリックメニューを防ぐ
+            return;
         }
 
-        // メニューを表示
+        e.preventDefault();  // ブラウザのデフォルト右クリックメニューを防ぐ
+        e.stopPropagation(); // 他のイベントハンドラへの伝播を停止
+
+        player.pauseVideo();
+
         contextMenu.style.display = 'block';
         contextMenu.style.left = `${e.clientX}px`;
         contextMenu.style.top = `${e.clientY}px`;
         
-        // クリック位置を保存
         rangeStartX = e.clientX - canvas.getBoundingClientRect().left;
         rangeStartY = e.clientY - canvas.getBoundingClientRect().top;
     });
+
 
     // デバッグ用：右クリックイベントが発火しているか確認
     canvas.addEventListener('mousedown', function(e) {
@@ -1319,13 +1436,24 @@ function initializeContextMenu() {
     contextMenu.addEventListener('click', function(e) {
         const action = e.target.closest('.context-menu-item')?.dataset.action;
         if (!action) return;
-
+    
+        // 通常のクリック記録を防ぐためにフラグを設定
+        e.preventDefault();
+        e.stopPropagation();
+        
         switch (action) {
             case 'range':
                 startRangeSelection();
                 break;
             case 'scene':
-                captureScene();
+                const currentTime = player.getCurrentTime();
+                tempSelectionData = {
+                    type: 'scene',
+                    data: {
+                        time: currentTime
+                    }
+                };
+                showCommentModal('scene');
                 break;
         }
         contextMenu.style.display = 'none';
@@ -1340,12 +1468,13 @@ function initializeContextMenu() {
 }
 
 /**
- * 範囲選択の開始
+ * 2. 範囲選択の開始処理
  */
 function startRangeSelection() {
     const canvas = document.getElementById('myCanvas');
-    isDrawingRange = true;
+    isDrawingRange = true; // 範囲選択モードを開始
 
+    // マウスの移動を監視して選択範囲をプレビュー表示
     function onMouseMove(e) {
         if (!isDrawingRange) return;
         
@@ -1353,38 +1482,26 @@ function startRangeSelection() {
         const currentX = e.clientX - rect.left;
         const currentY = e.clientY - rect.top;
 
-        // 選択範囲を描画
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)';
-        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
+        
+        // 選択範囲を描画
+        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)'; // 半透明の青
+        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)'; // 濃い青の枠
         ctx.lineWidth = 2;
 
+        // 開始位置から現在位置までの矩形を描画
         const width = currentX - rangeStartX;
         const height = currentY - rangeStartY;
         ctx.fillRect(rangeStartX, rangeStartY, width, height);
         ctx.strokeRect(rangeStartX, rangeStartY, width, height);
     }
 
+    // マウスボタンを離したときの処理
     function onMouseUp(e) {
         if (!isDrawingRange) return;
-        isDrawingRange = false;
-
-        const rect = canvas.getBoundingClientRect();
-        const endX = e.clientX - rect.left;
-        const endY = e.clientY - rect.top;
-
-        // 範囲選択データを保存
-        const selectionData = {
-            startX: Math.min(rangeStartX, endX),
-            startY: Math.min(rangeStartY, endY),
-            width: Math.abs(endX - rangeStartX),
-            height: Math.abs(endY - rangeStartY),
-            time: player.getCurrentTime()
-        };
-
-        saveRangeSelection(selectionData);
-
-        // イベントリスナーを削除
+        // 選択範囲の確定
+        endSelection(e);
+        // イベントリスナーの削除
         canvas.removeEventListener('mousemove', onMouseMove);
         canvas.removeEventListener('mouseup', onMouseUp);
     }
@@ -1393,75 +1510,40 @@ function startRangeSelection() {
     canvas.addEventListener('mouseup', onMouseUp);
 }
 
-/**
- * 範囲選択データの保存
- * @param {Object} selectionData 選択範囲のデータ
- */
-function saveRangeSelection(selectionData) {
-    console.log('範囲選択データ:', selectionData); // デバッグ用
-
-    fetch('./coordinate/php/save_range_selection.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user_id: userId,
-            video_id: videoId,
-            startX: selectionData.startX,
-            startY: selectionData.startY,
-            width: selectionData.width,
-            height: selectionData.height,
-            time: selectionData.time
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showModeError('保存', '範囲選択を保存しました');
-            
-            // コメントモーダルの準備と表示
-            const modal = document.getElementById('commentModal');
-            const titleElement = modal.querySelector('.modal-title');
-            titleElement.textContent = '範囲選択のコメント';
-            
-            const commentModal = new bootstrap.Modal(modal);
-            commentModal.show();
-        } else {
-            showModeError('エラー', '保存に失敗しました');
-        }
-    })
-    .catch(error => {
-        console.error('範囲選択の保存に失敗:', error);
-        showModeError('エラー', '保存中にエラーが発生しました');
-    });
-
-    // 選択範囲をクリア
-    setTimeout(() => {
-        const canvas = document.getElementById('myCanvas');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }, 500); // 0.5秒後に範囲を消去
-}
 
 /**
- * シーン記録
+ * 3．範囲選択の終了処理
  */
-function captureScene() {
-    const currentTime = player.getCurrentTime();
+function endSelection(e) {
+    if (!isDrawingRange) return;
     
-    fetch('./coordinate/php/save_scene.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user_id: userId,
-            video_id: videoId,
-            time: currentTime,
-            type: 'scene'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showModeError('保存', 'シーンを記録しました');
-            showCommentModal('scene');
+    // イベントの伝播を停止して通常のクリック処理を防ぐ
+    e.preventDefault();
+    e.stopPropagation();
+    
+    isDrawingRange = false;
+
+    // 選択範囲データの保存準備
+    const canvas = document.getElementById('myCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+
+    // 選択範囲のデータを一時保存
+    tempSelectionData = {
+        type: 'range',
+        data: {
+            startX: Math.min(rangeStartX, endX),
+            startY: Math.min(rangeStartY, endY),
+            width: Math.abs(endX - rangeStartX),
+            height: Math.abs(endY - rangeStartY),
+            time: player.getCurrentTime()
         }
-    });
+    };
+
+    // キャンバスをクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // コメント入力モーダルを表示
+    showCommentModal('range');
 }

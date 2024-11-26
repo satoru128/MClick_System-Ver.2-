@@ -69,7 +69,7 @@
                                     <button id="rewindBtn" class="btn btn-outline-primary">◀◀ 10秒</button>
                                     <button id="skipBtn" class="btn btn-outline-primary">10秒 ▶▶</button>
                                 </div>
-                                <button id="commentBtn" class="btn btn-info mx-2">コメント</button>
+                                <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
                                 <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
                             </div>
 
@@ -137,6 +137,16 @@
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                         </div>
                     </div>
+                </div>
+            </div>
+            <!-- 右クリックメニュー -->
+            <div id="customContextMenu" class="context-menu" style="display: none;">
+                <div class="context-menu-item" data-action="range">
+                    <i class="bi bi-square"></i>範囲選択
+                </div>
+                <div class="context-menu-divider"></div>
+                <div class="context-menu-item" data-action="scene">
+                    <i class="bi bi-camera"></i>シーン記録
                 </div>
             </div>
         </div>

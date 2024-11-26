@@ -18,10 +18,10 @@ try {
     try {
         $stmt = $pdo->prepare("
             INSERT INTO range_selections 
-            (user_id, video_id, start_x, start_y, width, height, click_time) 
-            VALUES (:user_id, :video_id, :start_x, :start_y, :width, :height, :click_time)
+            (user_id, video_id, start_x, start_y, width, height, click_time, comment) 
+            VALUES (:user_id, :video_id, :start_x, :start_y, :width, :height, :click_time, :comment)
         ");
-        
+
         $stmt->execute([
             ':user_id' => $data['user_id'],
             ':video_id' => $data['video_id'],
@@ -29,7 +29,8 @@ try {
             ':start_y' => $data['startY'],
             ':width' => $data['width'],
             ':height' => $data['height'],
-            ':click_time' => $data['time']
+            ':click_time' => $data['time'],
+            ':comment' => $data['comment'] ?? null
         ]);
 
         $pdo->commit();

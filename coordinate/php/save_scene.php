@@ -15,17 +15,18 @@ try {
     $pdo->beginTransaction();
     
     try {
-        // シーン記録の保存
+        // scene_recordsテーブルにデータを保存する際にコメントも同時に保存
         $stmt = $pdo->prepare("
             INSERT INTO scene_records 
-            (user_id, video_id, click_time) 
-            VALUES (:user_id, :video_id, :click_time)
+            (user_id, video_id, click_time, comment) 
+            VALUES (:user_id, :video_id, :click_time, :comment)
         ");
-        
+
         $stmt->execute([
             ':user_id' => $data['user_id'],
             ':video_id' => $data['video_id'],
-            ':click_time' => $data['time']
+            ':click_time' => $data['time'],
+            ':comment' => $data['comment'] ?? null
         ]);
 
         $pdo->commit();
