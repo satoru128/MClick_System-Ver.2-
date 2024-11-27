@@ -1153,7 +1153,7 @@ function handleCommentSubmit() {
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
-            // モーダルを完全に閉じる
+            // モーダルを閉じる処理
             const modal = document.getElementById('commentModal');
             const commentModal = bootstrap.Modal.getInstance(modal);
             commentModal.hide();
@@ -1161,17 +1161,15 @@ function handleCommentSubmit() {
             // モーダルの状態をリセット
             resetModalState();
 
+            // 全てのコメント送信成功時に視覚的フィードバック
+            const videoContainer = document.getElementById('video-container');
+            videoContainer.classList.add('border-flash');
+            setTimeout(() => {
+                videoContainer.classList.remove('border-flash');
+            }, 500);
+
             // 動画を再生
             player.playVideo();
-
-            // 範囲選択やシーン記録の場合は視覚的フィードバック
-            if (modalTitle !== 'クリック座標のコメント') {
-                const videoContainer = document.getElementById('video-container');
-                videoContainer.classList.add('border-flash');
-                setTimeout(() => {
-                    videoContainer.classList.remove('border-flash');
-                }, 500);
-            }
             
             // データを更新
             fetchClickCoordinates();
