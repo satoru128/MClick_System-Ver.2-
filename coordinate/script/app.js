@@ -1404,6 +1404,24 @@ function initializeContextMenu() {
     const canvas = document.getElementById('myCanvas');
     const contextMenu = document.getElementById('customContextMenu');
 
+    // 閉じるボタンの処理
+    const closeButton = contextMenu.querySelector('.btn-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', function(e) {
+            // イベントの伝播を止める（メニュー項目のクリックを防ぐため）
+            e.preventDefault();
+            e.stopPropagation();
+
+            // メニューを非表示
+            contextMenu.style.display = 'none';
+
+            // 動画を再生（一時停止していた場合）
+            if (player) {
+                player.playVideo();
+            } 
+        });
+    }
+
     // 右クリック処理
     canvas.addEventListener('contextmenu', function(e) {
         // 座標取得モードがオフ、またはリプレイモード中は右クリックメニューを表示しない

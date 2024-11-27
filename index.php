@@ -141,6 +141,10 @@
             </div>
             <!-- 右クリックメニュー -->
             <div id="customContextMenu" class="context-menu" style="display: none;">
+                <div class="context-menu-header">
+                    <span>アノテーション選択</span>
+                    <button type="button" class="btn-close" aria-label="Close"></button>
+                </div>
                 <div class="context-menu-item" data-action="range">
                     <i class="bi bi-square"></i>範囲選択
                 </div>
@@ -149,7 +153,6 @@
                     <i class="bi bi-camera"></i>シーン記録
                 </div>
             </div>
-        </div>
         <!--JavaScript-->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     </body>

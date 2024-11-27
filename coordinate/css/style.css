@@ -99,14 +99,14 @@
 /**
  * 右クリックメニューのスタイル
  */
- .context-menu {
+.context-menu {
     position: fixed;
     background: white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     border-radius: 4px;
-    padding: 5px 0;
     min-width: 150px;
     z-index: 1000;
+    padding: 5px;
 }
 
 .context-menu-item {
@@ -127,6 +127,24 @@
     margin: 5px 0;
 }
 
+.context-menu-header {
+    display: flex;
+    justify-content: space-between;  /* 両端配置 */
+    align-items: center;
+    padding: 3px 8px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #dee2e6;  /* 下線 */
+}
+
+.context-menu-header span {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.context-menu-header .btn-close {
+    padding: 0;
+    font-size: 0.8rem;
+}
 
 
 /* シーン記録時の視覚的フィードバック用 */
