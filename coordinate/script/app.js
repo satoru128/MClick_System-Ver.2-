@@ -530,8 +530,7 @@ function initializeReplay() {
     });
 }
 
-
- /**
+/**
  * リプレイのモニタリング開始
  */
 function startReplayMonitoring() {
@@ -568,7 +567,7 @@ function updateClickDisplay(currentTime) {
         
         clicks.forEach(click => {
             const timeSinceClick = currentTime - click.click_time;
-            if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
+            if (click.click_time <= currentTime && timeSinceClick <= 2.0) { // 2秒間表示
                 drawReplayClick(
                     click.x, 
                     click.y, 
@@ -600,6 +599,7 @@ function drawReplayClick(x, y, color, comment, clickData) {
     ctx.font = 'bold 10px Arial';       // フォントスタイル
     ctx.textAlign = 'center';           // テキストの水平位置
     ctx.textBaseline = 'middle';        // テキストの垂直位置
+    ctx.fillText(clickData.id.toString(), x, y);
     
     // コメントがある場合のみホバー効果を設定
     if (comment) {
@@ -639,24 +639,6 @@ function stopReplay() {
     replayClickData = {};
     isReplayEnabled = false;
     document.getElementById('replayBtn').checked = false;
-}
-
-/**
- * クリック位置の描画
- */
-function drawClickWithNumber(x, y, clickData) {
-    // 赤い丸を描画
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-    ctx.fill();
-    
-    // IDを描画
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(clickData.id.toString(), x, y);
 }
 
 /**
