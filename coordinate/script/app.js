@@ -9,7 +9,8 @@ let videoId = null;           // 動画ID
 let ctx;                      // キャンバスコンテキスト
 let isPlaying = false;        // 再生状態
 let clickCount = 0;           //クリックカウント用
-let replayClickData = {};    // クリックデータ
+let replayClickData = {};    // 左クリックのリプレイデータ
+let replayRangeData = {};    // 範囲選択のリプレイデータ
 let replayIntervalId = null; // モニタリング用のインターバルID
 let selectedUsers = new Set(); // 選択されたユーザーのIDを保持
 let allUsers = []; // 全ユーザーのリストを保持
@@ -470,7 +471,7 @@ function visualizeClick(x, y) {
 }
 
 //===========================================
-// リプレイ機能
+// リプレイ機能（共通表示）
 //=========================================== 
 /**
  * リプレイの初期化処理（データの取得，動画の初期化，モニタリングの開始）
@@ -488,35 +489,59 @@ function initializeReplay() {
     clearCanvas();
     
     // 選択された全ユーザーのクリックデータを取得
-    Promise.all(Array.from(selectedUsers).map(userId => 
-        fetch('./coordinate/php/get_click_data.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                video_id: videoId,
-                user_id: userId
+    Promise.all([
+        // クリックデータの取得
+        ...Array.from(selectedUsers).map(userId => 
+            fetch('./coordinate/php/get_click_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    video_id: videoId,
+                    user_id: userId
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                return {
-                    userId: userId,
-                    clicks: data.clicks
-                };
-            }
-            return null;
-        })
-    ))
+            .then(response => response.json())
+            .then(data => ({
+                type: 'click',
+                userId: userId,
+                data: data
+            }))
+        ),
+        // 範囲選択データの取得を追加
+        ...Array.from(selectedUsers).map(userId =>
+            fetch('./coordinate/php/get_range_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    video_id: videoId,
+                    user_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => ({
+                type: 'range',
+                userId: userId,
+                data: data
+            }))
+        )
+    ])
     .then(results => {
+        // データを種類ごとに整理
         replayClickData = {};
+        replayRangeData = {};
+        
         results.forEach(result => {
-            if (result) {
-                replayClickData[result.userId] = result.clicks;
+            if (result.data.status === 'success') {
+                if (result.type === 'click') {
+                    replayClickData[result.userId] = result.data.clicks;
+                } else if (result.type === 'range') {
+                    replayRangeData[result.userId] = result.data.ranges;
+                }
             }
         });
-        
-        if (Object.keys(replayClickData).length > 0) {
+
+        // リプレイ開始
+        if (Object.keys(replayClickData).length > 0 || Object.keys(replayRangeData).length > 0) {
             startReplayMonitoring();
             player.pauseVideo();
         } else {
@@ -553,34 +578,78 @@ function startReplayMonitoring() {
 }
 
 /**
- * クリック表示の更新（複数ユーザー対応）
+ * リプレイの基本機能（共通）
+ * 全てのアノテーションタイプで共通して使用する表示処理
+ * @param {Object} data - アノテーションデータ（click_time等を含む）
+ * @param {number} currentTime - 現在の再生時間
+ * @param {string} userId - ユーザーID
+ * @returns {Object} 表示制御情報（表示判定，経過時間，色情報）
  */
-function updateClickDisplay(currentTime) {
-    if (!player || !replayClickData) return;
-
-    clearCanvas();
+function handleReplayBaseFeatures(data, currentTime, userId) {
+    // データが記録されてからの経過時間を計算
+    const timeSinceEvent = currentTime - data.click_time;
     
-    // 選択されたユーザーのデータを表示
+    // ユーザーに割り当てられた色を取得
+    const colorIndex = userColorAssignments.get(userId);
+    const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+
+    return {
+        // 表示条件：記録時間に到達し，2秒以内であること
+        shouldDisplay: (data.click_time <= currentTime && timeSinceEvent <= 2.0),
+        timeSinceEvent: timeSinceEvent,
+        color: color
+    };
+}
+
+/**
+ * リプレイ時の表示更新
+ * 複数のアノテーションタイプを同時に表示
+ * @param {number} currentTime - 現在の再生時間
+ */
+function updateReplayDisplay(currentTime) {
+    if (!player || !replayClickData) return;
+    clearCanvas();
+
+    // クリック座標の表示
     Object.entries(replayClickData).forEach(([userId, clicks]) => {
-        // allUsersの中でのインデックスを取得して色を決定
-        const userIndex = allUsers.findIndex(user => user.user_id === userId);
-        const colorInfo = USER_COLORS[userIndex + 1];  // インデックスは0から始まるため+1
-        
         clicks.forEach(click => {
-            const timeSinceClick = currentTime - click.click_time;
-            if (click.click_time <= currentTime && timeSinceClick <= 2.0) { // 2秒間表示
+            const baseCheck = handleReplayBaseFeatures(click, currentTime, userId);
+            if (baseCheck.shouldDisplay && baseCheck.color) {
                 drawReplayClick(
                     click.x, 
                     click.y, 
-                    colorInfo.bg, 
+                    baseCheck.color.bg, 
                     click.comment,
                     click
                 );
             }
         });
     });
+
+    // 範囲選択の表示（実装予定）
+    if (replayRangeData) {
+        Object.entries(replayRangeData).forEach(([userId, ranges]) => {
+            ranges.forEach(range => {
+                const baseCheck = handleReplayBaseFeatures(range, currentTime, userId);
+                if (baseCheck.shouldDisplay && baseCheck.color) {
+                    drawReplayRange(
+                        range.start_x,
+                        range.start_y,
+                        range.width,
+                        range.height,
+                        baseCheck.color.bg,
+                        range.comment,
+                        range
+                    );
+                }
+            });
+        });
+    }
 }
 
+//===========================================
+// 左クリックのリプレイ機能
+//===========================================
 /**
  * リプレイ用のクリック描画（ID表示付き）
  * コメント表示位置を円の右下に固定
@@ -621,6 +690,62 @@ function drawReplayClick(x, y, color, comment, clickData) {
                 const tooltipX = x + rect.left + 4;
                 const tooltipY = y + rect.top + 4;
                 showClickTooltip(tooltipX, tooltipY, comment);
+            } else {
+                hideClickTooltip();
+            }
+        });
+    }
+}
+
+//===========================================
+// 範囲選択のリプレイ機能
+//===========================================
+/**
+ * 範囲選択のリプレイ描画
+ * 指定された座標と大きさで矩形を描画し，IDとコメントを表示
+ * @param {number} startX - 矩形の開始X座標
+ * @param {number} startY - 矩形の開始Y座標
+ * @param {number} width - 矩形の幅
+ * @param {number} height - 矩形の高さ
+ * @param {string} color - 描画色
+ * @param {string} comment - コメント
+ * @param {Object} data - 範囲選択の全データ（ID等を含む）
+ */
+function drawReplayRange(startX, startY, width, height, color, comment, data) {
+    console.log('Drawing range with:', { startX, startY, width, height, color });  // デバッグ用
+
+    // 色の設定（透明度の調整）
+    const fillColor = color.replace('rgb', 'rgba').replace(')', ', 0.2)');
+    const strokeColor = color;
+
+    // 矩形の描画
+    ctx.beginPath();
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(startX, startY, width, height);
+    
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(startX, startY, width, height);
+
+    // IDの描画
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`ID:${data.id}`, startX + 5, startY + 5);
+
+    // コメントがある場合はホバー効果を設定
+    if (comment) {
+        const canvas = document.getElementById('myCanvas');
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // マウスが矩形内にあるかチェック
+            if (mouseX >= startX && mouseX <= startX + width &&
+                mouseY >= startY && mouseY <= startY + height) {
+                showClickTooltip(e.clientX, e.clientY, comment);
             } else {
                 hideClickTooltip();
             }
@@ -1726,6 +1851,3 @@ function endSelection(e) {
     // コメント入力モーダルを表示
     showCommentModal('range');
 }
-
-
-
