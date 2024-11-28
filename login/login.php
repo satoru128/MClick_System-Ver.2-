@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>ログイン画面</title>
     <!-- Bootstrap CSSの読み込み -->
-    <link href="/../Bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../Bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <!-- 既存のスタイルシートも維持 -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -58,6 +58,6 @@
 
     <!-- Bootstrap JSの読み込み -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="/../Bootstrap/js/bootstrap.min.js"></script>
+    <script src="../Bootstrap/js/bootstrap.min.js"></script>
 </body>
 </html>

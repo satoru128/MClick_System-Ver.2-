@@ -94,7 +94,8 @@ function onPlayerReady(event) {
     initializeControls();   // コントロールの初期化
     initializeUserSelect(); // ユーザー選択機能の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
-    fetchClickCoordinates();  // 座標データの取得
+    // fetchClickCoordinates();  // 座標データの取得
+    initializeTabsAndData();    // タブとデータ表示の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -323,7 +324,7 @@ function formatTime(seconds) {
 }
 
 //===========================================
-// アノテーション機能（座標取得とリプレイ）
+// アノテーション機能（左クリック）
 //===========================================
 /**
  * キャンバスの初期化
@@ -393,7 +394,7 @@ function handleCanvasClick(event) {
 }
 
 /**
- * 座標データをサーバーに保存
+ * クリック座標データの保存
  * @param {number} x - X座標（0-1の範囲）
  * @param {number} y - Y座標（0-1の範囲）
  * @param {number} clickTime - クリック時の動画再生時間
@@ -438,7 +439,7 @@ function saveCoordinate(x, y, clickTime) {
 }
 
 /**
- * クリック位置を赤い点で示し，フェードアウト(加筆)
+ * クリック位置の可視化
  * @param {number} x - X座標
  * @param {number} y - Y座標
  */
@@ -715,7 +716,6 @@ function initializeUserSelect() {
     userSelectDiv.className = 'mb-3';
     userSelectDiv.innerHTML = `
         <div class="d-flex align-items-center mb-2">
-            <h6 class="me-3 mb-0">表示するユーザー：</h6>
             <div id="user-select"></div>
         </div>
     `;
@@ -737,8 +737,6 @@ function fetchUserList() {
         .then(data => {
             if (data.status === 'success') {
                 allUsers = data.users;
-                // 以下の行を削除
-                // selectedUsers.add(data.current_user);
                 renderUserSelect();
                 fetchClickCoordinates();
             }
@@ -750,55 +748,42 @@ function fetchUserList() {
 }
 
 /**
- * ユーザー選択UIの作成（ドロップダウン形式）
+ * ユーザー選択UIの作成（ドロップダウン）
  */
 function renderUserSelect() {
     const container = document.getElementById('user-select');
     if (!container) return;
 
-    container.innerHTML = `
-        <div class="dropdown">
-            <button class="btn btn-outline-primary dropdown-toggle" 
-                    type="button" 
-                    id="userDropdown" 
-                    data-bs-toggle="dropdown" 
-                    aria-expanded="false">
-                表示するユーザーを選択 (最大3名)
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="userDropdown" style="max-height: 200px; overflow-y: auto;">
-                ${allUsers.map(user => {
-                    const colorIndex = userColorAssignments.get(user.user_id);
-                    const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
-                    return `
-                        <li>
-                            <div class="dropdown-item">
-                                <div class="form-check">
-                                    <input class="form-check-input user-checkbox" 
-                                           type="checkbox" 
-                                           id="user-${user.user_id}" 
-                                           value="${user.user_id}"
-                                           ${selectedUsers.has(user.user_id) ? 'checked' : ''}>
-                                    <label class="form-check-label" for="user-${user.user_id}">
-                                        <span class="color-preview" style="
-                                            display: inline-block;
-                                            width: 12px;
-                                            height: 12px;
-                                            margin-right: 5px;
-                                            background-color: ${color};
-                                            border-radius: 50%;
-                                            border: 1px solid #ccc;
-                                        "></span>
-                                        ${user.name} (${user.user_id})
-                                    </label>
-                                </div>
-                            </div>
-                        </li>
-                    `;
-                }).join('')}
-            </ul>
-        </div>
-        <div id="selected-users-display" class="mt-2 small text-muted"></div>
-    `;
+    // ドロップダウンメニューの内容のみを更新
+    container.innerHTML = allUsers.map(user => {
+        const colorIndex = userColorAssignments.get(user.user_id);
+        const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
+        return `
+            <li>
+                <div class="dropdown-item">
+                    <div class="form-check">
+                        <input class="form-check-input user-checkbox" 
+                               type="checkbox" 
+                               id="user-${user.user_id}" 
+                               value="${user.user_id}"
+                               ${selectedUsers.has(user.user_id) ? 'checked' : ''}>
+                        <label class="form-check-label" for="user-${user.user_id}">
+                            <span class="color-preview" style="
+                                display: inline-block;
+                                width: 12px;
+                                height: 12px;
+                                margin-right: 5px;
+                                background-color: ${color};
+                                border-radius: 50%;
+                                border: 1px solid #ccc;
+                            "></span>
+                            ${user.name} (${user.user_id})
+                        </label>
+                    </div>
+                </div>
+            </li>
+        `;
+    }).join('');
 
     // チェックボックスのイベント設定
     document.querySelectorAll('.user-checkbox').forEach(checkbox => {
@@ -833,6 +818,7 @@ function renderUserSelect() {
             updateSelectedUsersDisplay();
         });
     });
+
     updateSelectedUsersDisplay();
 }
 
@@ -898,6 +884,12 @@ function updateClickDisplay(currentTime) {
     });
 }
 
+//===========================================
+// データ表示テーブル➀（クリック座標）
+//===========================================
+/**
+ * クリック座標データの取得
+ */
 function fetchClickCoordinates() {
     console.log('データ取得中...'); 
     
@@ -957,8 +949,6 @@ function displayCoordinates(coordinates) {
             ${coordinates.map(coord => {
                 // ユーザーの色を取得
                 const colorIndex = userColorAssignments.get(coord.user_id);
-                // デバッグ用
-                // console.log('Coordinate:', coord, 'Color Index:', colorIndex);
                 
                 // 色が割り当てられている場合のみ背景色を設定
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
@@ -993,6 +983,155 @@ function getLuminance(color) {
     }
     return 0.5; // デフォルト値
 }
+
+//===========================================
+// データ表示テーブル➁➂（範囲選択，シーン記録）
+//===========================================
+/**
+ * タブ切り替えとデータ表示の初期化
+ */
+function initializeTabsAndData() {
+    // タブ切り替え時のイベントリスナー設定
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(event) {
+            switch(event.target.dataset.bsTarget) {
+                case '#clicks-tab':
+                    fetchClickCoordinates();
+                    break;
+                case '#ranges-tab':
+                    fetchRangeData();
+                    break;
+                case '#scenes-tab':
+                    fetchSceneData();
+                    break;
+            }
+        });
+    });
+
+    // 初期表示時のデータ取得
+    fetchClickCoordinates();
+}
+
+/**
+ * 範囲選択データの取得
+ */
+function fetchRangeData() {
+    console.log('範囲選択データ取得中...');
+    fetch('./coordinate/php/fetch_range_data.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displayRangeData(data.data);
+            } else {
+                console.log('範囲選択データがありません');
+            }
+        })
+        .catch(error => {
+            console.error('範囲選択データの取得失敗:', error);
+        });
+}
+
+/**
+ * 範囲選択データの表示
+ */
+function displayRangeData(ranges) {
+    const container = document.getElementById('range-data');
+    if (!container) return;
+
+    const table = document.createElement('table');
+    table.className = 'table';
+
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 10%;">No.</th>
+                <th style="width: 20%;">時間</th>
+                <th style="width: 15%;">開始座標</th>
+                <th style="width: 15%;">サイズ</th>
+                <th style="width: 40%;">コメント</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ranges.map(range => {
+                // ユーザーの色を取得
+                const colorIndex = userColorAssignments.get(range.user_id);
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${range.id}</td>
+                        <td>${Number(range.click_time).toFixed(2)}s</td>
+                        <td>(${Number(range.start_x)}, ${Number(range.start_y)})</td>
+                        <td>${Number(range.width)}×${Number(range.height)}</td>
+                        <td class="text-break">${range.comment || ''}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(table);
+}
+
+/**
+ * シーン記録データの取得
+ */
+function fetchSceneData() {
+    console.log('シーン記録データ取得中...');
+    fetch('./coordinate/php/fetch_scene_data.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displaySceneData(data.data);
+            } else {
+                console.log('シーン記録データがありません');
+            }
+        })
+        .catch(error => {
+            console.error('シーン記録データの取得失敗:', error);
+        });
+}
+
+/**
+ * シーン記録データの表示
+ */
+function displaySceneData(scenes) {
+    const container = document.getElementById('scene-data');
+    if (!container) return;
+
+    const table = document.createElement('table');
+    table.className = 'table';
+    
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 10%;">No.</th>
+                <th style="width: 20%;">時間</th>
+                <th style="width: 70%;">コメント</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${scenes.map(scene => {
+                // ユーザーの色を取得
+                const colorIndex = userColorAssignments.get(scene.user_id);
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${scene.id}</td>
+                        <td>${Number(scene.click_time).toFixed(2)}s</td>
+                        <td class="text-break">${scene.comment || ''}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(table);
+}
+
 
 //===========================================
 // ミスボタン
@@ -1468,7 +1607,7 @@ function initializeContextMenu() {
 }
 
 /**
- * 2. 範囲選択の開始処理
+ * 2. 範囲選択の開始
  */
 function startRangeSelection() {
     const canvas = document.getElementById('myCanvas');
@@ -1587,3 +1726,6 @@ function endSelection(e) {
     // コメント入力モーダルを表示
     showCommentModal('range');
 }
+
+
+
