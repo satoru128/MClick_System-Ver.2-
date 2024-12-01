@@ -102,28 +102,58 @@
                         </div>
                     </div>
 
-                    <!-- データ表示カード -->
+                    <!-- データ表示カード内のリプレイ表示設定部分 -->
                     <div class="card mt-3">
                         <div class="card-body">
-                            <!-- リプレイ表示設定 -->
+                            <!-- リプレイ表示設定部分を2つに分割 -->
                             <div class="mb-3">
-                                <!-- 横並びにして上下中心 -->
-                                <div class="d-flex justify-content align-items-center">
-                                    <h6 class="mb-0">リプレイ表示に用いる記録の選択：</h6>
-                                    <div class="d-flex gap-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="showClicks" checked>
-                                            <label class="form-check-label" for="showClicks">クリック座標</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="showRanges" checked>
-                                            <label class="form-check-label" for="showRanges">範囲選択</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="showScenes" checked>
-                                            <label class="form-check-label" for="showScenes">シーン記録</label>
-                                        </div>
-                                    </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" 
+                                            type="button" 
+                                            id="replaySettingsDropdown" 
+                                            data-bs-toggle="dropdown">
+                                            リプレイに表示させる記録の選択
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showClicks" checked>
+                                                    <label class="form-check-label" for="showClicks">
+                                                        クリック座標
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showRanges" checked>
+                                                    <label class="form-check-label" for="showRanges">
+                                                        範囲選択
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showScenes" checked>
+                                                    <label class="form-check-label" for="showScenes">
+                                                        シーン記録
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <!-- コメント表示設定を分離 -->
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="showComments" checked>
+                                    <label class="form-check-label" for="showComments">
+                                        コメントを常時表示
+                                    </label>
                                 </div>
                             </div>
 
@@ -131,10 +161,7 @@
                             <div class="mb-3">
                                 <div class="dropdown">
                                     <button class="btn btn-outline-primary dropdown-toggle" 
-                                            type="button" 
-                                            id="userDropdown" 
-                                            data-bs-toggle="dropdown" 
-                                            aria-expanded="false">
+                                            type="button" id="userDropdown" data-bs-toggle="dropdown">
                                         表示するユーザーを選択 (最大3名)
                                     </button>
                                     <ul class="dropdown-menu" id="user-select"></ul>

@@ -158,3 +158,57 @@
 .border-flash {
     animation: border-flash 0.5s ease-out;
 }
+
+
+/* 番号の丸枠のスタイル */
+.number-circle {
+    position: absolute;
+    z-index: 3;
+}
+
+/* コメントツールチップの改善 */
+#clickTooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    max-width: 250px;  /* コメントの最大幅 */
+    word-wrap: break-word;  /* 長文の折り返し */
+}
+
+/* 常時表示コメントのスタイル */
+.permanent-comment {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+/* クリック時の吹き出しスタイル */
+.click-bubble {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+.click-bubble:after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    border-width: 0 8px 8px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent;
+    margin-left: -8px;
+}
