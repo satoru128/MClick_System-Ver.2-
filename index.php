@@ -71,6 +71,7 @@
                                 </div>
                                 <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
                                 <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
+                                <button id="exportBtn" class="btn btn-success">エクスポート</button>
                             </div>
 
                             <!--シークバー-->

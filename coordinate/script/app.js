@@ -171,6 +171,9 @@ function setupAnnotationControls() {
     // ミス＆コメントボタン
     const mistakeBtn = document.getElementById('mistakeBtn');
     const commentBtn = document.getElementById('commentBtn');
+
+    //データのエクスポートボタン
+    const exportBtn =  document.getElementById('exportBtn')
  
     // 座標取得モードの切り替え
     if (toggleBtn) {
@@ -198,6 +201,13 @@ function setupAnnotationControls() {
         commentBtn.addEventListener('click', handleCommentClick);
     } else {
         console.error('コメントボタンがない');
+    }
+
+    //データのエクスポートボタン
+    if (exportBtn) {
+        exportBtn.addEventListener('click', handleExportClick);
+    } else {
+        console.error('エクスポートボタンがない');
     }
 }
 
@@ -858,7 +868,7 @@ function updateReplayDisplay(currentTime) {
         }
     });
     activePopovers = [];
-    
+  
     clearCanvas();
     clearAnnotations();
     
@@ -1987,6 +1997,27 @@ function resetModalState() {
     document.body.removeAttribute('style');
     document.body.style.overflow = 'auto';
     document.body.style.paddingRight = '0';
+}
+
+//===========================================
+//データのエクスポート機能
+//===========================================
+function handleExportClick() {
+    fetch('export.php')
+        .then(response => response.text())
+        .then(data => {
+            if (data.trim() === "success") {
+                showModeError('成功', 'データがエクスポートされました');
+            } else if (data.trim() === "no data") {
+                showModeError('通知', 'エクスポートするデータがありません');
+            } else {
+                showModeError('座標取得', 'エクスポートに失敗しました');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('エクスポートに失敗しました');
+        });
 }
 
 //===========================================
