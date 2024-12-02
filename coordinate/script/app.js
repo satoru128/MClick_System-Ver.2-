@@ -1,6 +1,7 @@
 //===========================================
 // グローバル変数
 //===========================================
+let canvas;                    // キャンバス要素
 let player;                    // YouTubeプレーヤー
 let isCoordinateEnabled = false;  // 座標取得モード
 let isReplayEnabled = false;   // リプレイモード
@@ -9,11 +10,14 @@ let videoId = null;           // 動画ID
 let ctx;                      // キャンバスコンテキスト
 let isPlaying = false;        // 再生状態
 let clickCount = 0;           //クリックカウント用
-let replayClickData = {};    // クリックデータ
+let replayClickData = {};    // 左クリックのリプレイデータ
+let replayRangeData = {};    // 範囲選択のリプレイデータ
+let replaySceneData = {};    // シーン記録データ
 let replayIntervalId = null; // モニタリング用のインターバルID
 let selectedUsers = new Set(); // 選択されたユーザーのIDを保持
 let allUsers = []; // 全ユーザーのリストを保持
 let tempSelectionData = null;  // 一時的な選択データを保持
+let activePopovers = [];     // アクティブなポップオーバーを管理
 
 // クリック座標表示用の色の定義
 const USER_COLORS = [
@@ -93,8 +97,9 @@ function onPlayerReady(event) {
     initializeCanvas();     // キャンバスの初期化
     initializeControls();   // コントロールの初期化
     initializeUserSelect(); // ユーザー選択機能の初期化
+    initializeReplaySettings(); // リプレイ表示選択の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
-    fetchClickCoordinates();  // 座標データの取得
+    initializeTabsAndData();    // タブとデータ表示の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -333,14 +338,14 @@ function formatTime(seconds) {
 }
 
 //===========================================
-// アノテーション機能（座標取得とリプレイ）
+// アノテーション機能（左クリック）
 //===========================================
 /**
  * キャンバスの初期化
  */
 function initializeCanvas() {
     console.log('キャンバスの初期化を開始');
-    const canvas = document.getElementById('myCanvas');
+    canvas = document.getElementById('myCanvas');  // グローバル変数に代入
     ctx = canvas.getContext('2d');
 
     // キャンバスのサイズを設定（動画と同じに）
@@ -403,7 +408,7 @@ function handleCanvasClick(event) {
 }
 
 /**
- * 座標データをサーバーに保存
+ * クリック座標データの保存
  * @param {number} x - X座標（0-1の範囲）
  * @param {number} y - Y座標（0-1の範囲）
  * @param {number} clickTime - クリック時の動画再生時間
@@ -448,7 +453,7 @@ function saveCoordinate(x, y, clickTime) {
 }
 
 /**
- * クリック位置を赤い点で示し，フェードアウト(加筆)
+ * クリック位置の可視化
  * @param {number} x - X座標
  * @param {number} y - Y座標
  */
@@ -479,8 +484,223 @@ function visualizeClick(x, y) {
 }
 
 //===========================================
-// リプレイ機能
-//=========================================== 
+// アノテーション機能（右クリック）
+//===========================================
+/**
+ * 1. コンテキストメニューの初期化と表示制御
+ */
+function initializeContextMenu() {
+    const canvas = document.getElementById('myCanvas');
+    const contextMenu = document.getElementById('customContextMenu');
+
+    // 閉じるボタンの処理
+    const closeButton = contextMenu.querySelector('.btn-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', function(e) {
+            // イベントの伝播を止める（メニュー項目のクリックを防ぐため）
+            e.preventDefault();
+            e.stopPropagation();
+
+            // メニューを非表示
+            contextMenu.style.display = 'none';
+
+            // 動画を再生（一時停止していた場合）
+            if (player) {
+                player.playVideo();
+            } 
+        });
+    }
+
+    // 右クリック処理
+    canvas.addEventListener('contextmenu', function(e) {
+        // 座標取得モードがオフ、またはリプレイモード中は右クリックメニューを表示しない
+        if (!isCoordinateEnabled || isReplayEnabled) {
+            e.preventDefault(); // ブラウザのデフォルト右クリックメニューを防ぐ
+            return;
+        }
+
+        e.preventDefault();  // ブラウザのデフォルト右クリックメニューを防ぐ
+        e.stopPropagation(); // 他のイベントハンドラへの伝播を停止
+
+        player.pauseVideo();
+
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.top = `${e.clientY}px`;
+        
+        const canvas = e.target;
+        rangeStartX = e.clientX - canvas.getBoundingClientRect().left;
+        rangeStartY = e.clientY - canvas.getBoundingClientRect().top;
+    });
+
+
+    // デバッグ用：右クリックイベントが発火しているか確認
+    canvas.addEventListener('mousedown', function(e) {
+        if (e.button === 2) { // 右クリック
+            console.log('右クリックされた');
+        }
+    });
+
+    // メニューアイテムのクリックイベント
+    contextMenu.addEventListener('click', function(e) {
+        const action = e.target.closest('.context-menu-item')?.dataset.action;
+        if (!action) return;
+    
+        // 通常のクリック記録を防ぐためにフラグを設定
+        e.preventDefault();
+        e.stopPropagation();
+        
+        switch (action) {
+            case 'range':
+                startRangeSelection();
+                break;
+            case 'scene':
+                const currentTime = player.getCurrentTime();
+                tempSelectionData = {
+                    type: 'scene',
+                    data: {
+                        time: currentTime
+                    }
+                };
+                showCommentModal('scene');
+                break;
+        }
+        contextMenu.style.display = 'none';
+    });
+
+    // メニュー以外をクリックした時に閉じる
+    document.addEventListener('click', function(e) {
+        if (!contextMenu.contains(e.target)) {
+            contextMenu.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * 2. 範囲選択の開始
+ */
+function startRangeSelection() {
+    const canvas = document.getElementById('myCanvas');
+    isDrawingRange = true;
+
+    // 最初のクリックで開始位置を設定
+    function onFirstClick(e) {
+        // 通常のクリックイベントを防止
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = canvas.getBoundingClientRect();
+        rangeStartX = e.clientX - rect.left;
+        rangeStartY = e.clientY - rect.top;
+
+        // 開始位置が設定されたら、次のクリックのリスナーを設定
+        canvas.removeEventListener('click', onFirstClick);
+        canvas.addEventListener('click', onSecondClick);
+
+        // マウス移動時の範囲プレビュー表示を開始
+        canvas.addEventListener('mousemove', onMouseMove);
+    }
+
+    // マウス移動時の範囲プレビュー
+    function onMouseMove(e) {
+        if (!isDrawingRange) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)';
+        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
+        ctx.lineWidth = 2;
+
+        const width = currentX - rangeStartX;
+        const height = currentY - rangeStartY;
+        ctx.fillRect(rangeStartX, rangeStartY, width, height);
+        ctx.strokeRect(rangeStartX, rangeStartY, width, height);
+    }
+
+    // 2回目のクリックで範囲を確定
+    function onSecondClick(e) {
+        // 通常のクリックイベントを防止
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = canvas.getBoundingClientRect();
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
+
+        // 範囲選択データを保存
+        tempSelectionData = {
+            type: 'range',
+            data: {
+                startX: Math.min(rangeStartX, endX),
+                startY: Math.min(rangeStartY, endY),
+                width: Math.abs(endX - rangeStartX),
+                height: Math.abs(endY - rangeStartY),
+                time: player.getCurrentTime()
+            }
+        };
+
+        // イベントリスナーを削除
+        canvas.removeEventListener('click', onSecondClick);
+        canvas.removeEventListener('mousemove', onMouseMove);
+        
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 範囲選択モードを終了
+        isDrawingRange = false;
+
+        // コメント入力モーダルを表示
+        showCommentModal('range');
+    }
+
+    // 最初のクリックのリスナーを設定
+    canvas.addEventListener('click', onFirstClick);
+}
+
+/**
+ * 3．範囲選択の終了処理
+ */
+function endSelection(e) {
+    if (!isDrawingRange) return;
+    
+    // イベントの伝播を停止して通常のクリック処理を防ぐ
+    e.preventDefault();
+    e.stopPropagation();
+    
+    isDrawingRange = false;
+
+    // 選択範囲データの保存準備
+    const canvas = document.getElementById('myCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+
+    // 選択範囲のデータを一時保存
+    tempSelectionData = {
+        type: 'range',
+        data: {
+            startX: Math.min(rangeStartX, endX),  // 左上のX座標
+            startY: Math.min(rangeStartY, endY),  // 左上のY座標
+            width: Math.abs(endX - rangeStartX),  // 範囲の幅
+            height: Math.abs(endY - rangeStartY), // 範囲の高さ
+            time: player.getCurrentTime()         // 記録時間
+        }
+    };
+
+    // キャンバスをクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // コメント入力モーダルを表示
+    showCommentModal('range');
+}
+
+
+//===========================================
+// リプレイ機能（共通表示）
+//===========================================
 /**
  * リプレイの初期化処理（データの取得，動画の初期化，モニタリングの開始）
  */
@@ -495,43 +715,86 @@ function initializeReplay() {
     // 動画を停止して最初に巻き戻す
     player.seekTo(0);
     clearCanvas();
-    
-    // 選択された全ユーザーのクリックデータを取得
-    Promise.all(Array.from(selectedUsers).map(userId => 
-        fetch('./coordinate/php/get_click_data.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                video_id: videoId,
-                user_id: userId
+
+    // 選択されたユーザーのクリックデータ取得
+    Promise.all([
+        // クリックデータ
+        ...Array.from(selectedUsers).map(userId => 
+            fetch('./coordinate/php/get_click_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    video_id: videoId,
+                    user_id: userId
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                return {
-                    userId: userId,
-                    clicks: data.clicks
-                };
-            }
-            return null;
-        })
-    ))
+            .then(response => response.json())
+            .then(data => ({
+                type: 'click',
+                userId: userId,
+                data: data.status === 'success' ? data.clicks : []
+            }))
+        ),
+        // 範囲選択データ取得
+        ...Array.from(selectedUsers).map(userId => 
+            fetch('./coordinate/php/get_range_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    video_id: videoId,
+                    user_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => ({
+                type: 'range',
+                userId: userId,
+                data: data.status === 'success' ? data.ranges : []
+            }))
+        ),
+        // シーン記録データ取得
+        ...Array.from(selectedUsers).map(userId => 
+            fetch('./coordinate/php/get_scene_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    video_id: videoId,
+                    user_id: userId
+                })
+            })
+            .then(response => response.json())
+            .then(data => ({
+                type: 'scene',
+                userId: userId,
+                data: data.status === 'success' ? data.scenes : []
+            }))
+        )
+    ])
     .then(results => {
+        // データ整理
         replayClickData = {};
+        replayRangeData = {};
+        replaySceneData = {};
+
         results.forEach(result => {
-            if (result) {
-                replayClickData[result.userId] = result.clicks;
+            if (result.data.length > 0) {
+                switch(result.type) {
+                    case 'click':
+                        replayClickData[result.userId] = result.data;
+                        break;
+                    case 'range':
+                        replayRangeData[result.userId] = result.data;
+                        break;
+                    case 'scene':
+                        replaySceneData[result.userId] = result.data;
+                        break;
+                }
             }
         });
-        
-        if (Object.keys(replayClickData).length > 0) {
-            startReplayMonitoring();
-            player.pauseVideo();
-        } else {
-            showModeError('リプレイ', 'データが見つかりませんでした');
-            stopReplay();
-        }
+
+        // リプレイ開始
+        startReplayMonitoring();
+        player.pauseVideo();
     })
     .catch(error => {
         console.error('リプレイデータの取得に失敗:', error);
@@ -540,8 +803,7 @@ function initializeReplay() {
     });
 }
 
-
- /**
+/**
  * リプレイのモニタリング開始
  */
 function startReplayMonitoring() {
@@ -557,85 +819,283 @@ function startReplayMonitoring() {
             return;
         }
         
+        // 動画が一時停止中は更新しない
+        if (player && player.getPlayerState() === YT.PlayerState.PAUSED) {
+            return;
+        }
+        
         const currentTime = player.getCurrentTime();
-        updateClickDisplay(currentTime);
+        updateReplayDisplay(currentTime);
     }, 100);  // 100ミリ秒間隔で更新
 }
 
 /**
- * クリック表示の更新（複数ユーザー対応）
+ * リプレイの基本機能（共通）
+ * 全てのアノテーションタイプで共通して使用する表示処理
+ * @param {Object} data - アノテーションデータ（click_time等を含む）
+ * @param {number} currentTime - 現在の再生時間
+ * @param {string} userId - ユーザーID
+ * @returns {Object} 表示制御情報（表示判定，経過時間，色情報）
  */
-function updateClickDisplay(currentTime) {
-    if (!player || !replayClickData) return;
-
-    clearCanvas();
+function handleReplayBaseFeatures(data, currentTime, userId) {
+    // データが記録されてからの経過時間を計算
+    const timeSinceEvent = currentTime - data.click_time;
     
-    // 選択されたユーザーのデータを表示
-    Object.entries(replayClickData).forEach(([userId, clicks]) => {
-        // allUsersの中でのインデックスを取得して色を決定
-        const userIndex = allUsers.findIndex(user => user.user_id === userId);
-        const colorInfo = USER_COLORS[userIndex + 1];  // インデックスは0から始まるため+1
-        
-        clicks.forEach(click => {
-            const timeSinceClick = currentTime - click.click_time;
-            if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
-                drawReplayClick(
-                    click.x, 
-                    click.y, 
-                    colorInfo.bg, 
-                    click.comment,
-                    click
-                );
-            }
-        });
-    });
+    // ユーザーに割り当てられた色を取得
+    const colorIndex = userColorAssignments.get(userId);
+    const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+
+    return {
+        // 表示条件：記録時間に到達し，2秒以内であること
+        shouldDisplay: (data.click_time <= currentTime && timeSinceEvent <= 2.0),
+        timeSinceEvent: timeSinceEvent,
+        color: color
+    };
 }
 
 /**
- * リプレイ用のクリック描画（ID表示付き）
- * コメント表示位置を円の右下に固定
+ * 全アノテーションのリプレイ表示用（メイン）
+ * @param {number} currentTime - 現在の再生時間
  */
-function drawReplayClick(x, y, color, comment, clickData) {
-    // クリック円の描画部分
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);  // 半径8px
-    ctx.fillStyle = color;              // 塗りつぶし色（USER_COLORSから）
-    ctx.fill();
-    ctx.strokeStyle = '#000000';        // 円の輪郭色（黒）
-    ctx.lineWidth = 1;                  // 輪郭の太さ
-    ctx.stroke();
+function updateReplayDisplay(currentTime) {
+    if (!player || !isReplayEnabled) return;
 
-    // IDのスタイル
-    ctx.fillStyle = '#000000';          // ID文字色（黒）
-    ctx.font = 'bold 10px Arial';       // フォントスタイル
-    ctx.textAlign = 'center';           // テキストの水平位置
-    ctx.textBaseline = 'middle';        // テキストの垂直位置
-    ctx.fillText(clickData.id.toString(), x, y);
+    // ポップオーバーのクリーンアップ
+    activePopovers.forEach(item => {
+        item.popover.dispose();
+        if (item.element) {
+            item.element.remove();
+        }
+    });
+    activePopovers = [];
+  
+    clearCanvas();
+    clearAnnotations();
     
-    // コメントがある場合のみホバー効果を設定
-    if (comment) {
-        const canvas = document.getElementById('myCanvas');
-        const rect = canvas.getBoundingClientRect();
-        
-        canvas.addEventListener('mousemove', function(e) {
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+    // クリックデータの表示
+    if (document.getElementById('showClicks').checked && replayClickData) {
+        Object.entries(replayClickData).forEach(([userId, clicks]) => {
+            const colorIndex = userColorAssignments.get(userId);
+            if (colorIndex === undefined) return;
             
-            const distance = Math.sqrt(
-                Math.pow(mouseX - x, 2) + 
-                Math.pow(mouseY - y, 2)
-            );
-            
-            if (distance <= 8) {
-                // 円の中心から4px右、4px下の位置にツールチップを表示
-                const tooltipX = x + rect.left + 4;
-                const tooltipY = y + rect.top + 4;
-                showClickTooltip(tooltipX, tooltipY, comment);
-            } else {
-                hideClickTooltip();
-            }
+            const colorInfo = USER_COLORS[colorIndex];
+            clicks.forEach(click => {
+                const timeDiff = currentTime - click.click_time;
+                if (click.click_time <= currentTime && timeDiff <= 2.0) {
+                    drawReplayClick(
+                        click.x,
+                        click.y,
+                        colorInfo.bg,
+                        click.comment,
+                        click
+                    );
+                }
+            });
         });
     }
+
+    // 範囲選択データの表示
+    if (document.getElementById('showRanges').checked && replayRangeData) {
+        Object.entries(replayRangeData).forEach(([userId, ranges]) => {
+            const colorIndex = userColorAssignments.get(userId);
+            if (colorIndex === undefined) return;
+            
+            const colorInfo = USER_COLORS[colorIndex];
+            ranges.forEach(range => {
+                const timeDiff = currentTime - range.click_time;
+                if (range.click_time <= currentTime && timeDiff <= 3.0) {
+                    drawReplayRange(range, colorInfo.bg, range.comment);
+                }
+            });
+        });
+    }
+
+    // シーン記録データの表示
+    if (document.getElementById('showScenes').checked && replaySceneData) {
+        Object.entries(replaySceneData).forEach(([userId, scenes]) => {
+            const colorIndex = userColorAssignments.get(userId);
+            if (colorIndex === undefined) return;
+            
+            const colorInfo = USER_COLORS[colorIndex];
+            scenes.forEach(scene => {
+                const timeDiff = currentTime - scene.click_time;
+                if (scene.click_time <= currentTime && timeDiff <= 2.0) {
+                    drawReplayScene(scene, colorInfo.bg, scene.comment, userId);
+                }
+            });
+        });
+    }
+}
+
+/**
+ * コメント表示（共通）
+ */
+function handleAnnotationComment(x, y, id, comment, color, type) {
+    // 無効なIDのチェック
+    if (id === undefined || id === null) {
+        console.error('Invalid ID in handleAnnotationComment:', { x, y, id, type });
+        return;
+    }
+    
+    // 要素のID設定
+    const elementId = `annotation-${type}-${id}`;
+    
+    // 既存の要素があれば削除
+    const existingElement = document.getElementById(elementId);
+    if (existingElement) {
+        existingElement.remove();
+    }
+
+    // コンテナ要素の作成
+    const container = document.createElement('div');
+    container.id = elementId;
+    container.className = 'annotation-container';
+
+    // シーン記録の場合は四角形、それ以外は丸を作成
+    const shape = document.createElement('div');
+    if (type === 'scene') {
+        shape.className = 'annotation-square'; // 四角形
+    } else {
+        shape.className = 'annotation-circle';  // 丸
+    }
+    shape.style.backgroundColor = color;
+
+    // 番号要素の作成
+    const number = document.createElement('div');
+    number.className = 'annotation-number';
+    number.textContent = id.toString();
+
+    // 要素を組み立て
+    container.appendChild(shape);
+    container.appendChild(number);
+
+    // videoコンテナに追加
+    const videoContainer = document.getElementById('video-container');
+    videoContainer.appendChild(container);
+
+    // 位置設定（シーン記録の場合は右側に固定）
+    if (type === 'scene') {
+        const containerWidth = videoContainer.offsetWidth;
+        container.style.left = `${containerWidth + 30}px`;  // 動画の右側に30px余白
+        // yはそのまま使用（呼び出し側で計算された値）
+        container.style.top = `${y}px`;
+    } else {
+        container.style.left = `${x}px`;
+        container.style.top = `${y}px`;
+    }
+
+    // コメントがある場合はポップオーバーを設定
+    if (comment) {
+        const popover = new bootstrap.Popover(container, {
+            container: '#video-container',
+            placement: getPopoverPlacement(type),
+            trigger: 'click',
+            content: comment,
+            html: true,
+            offset: [0, 10]
+        });
+
+        // アクティブなポップオーバーとして登録
+        activePopovers.push({
+            element: container,
+            popover: popover
+        });
+
+        // コメント常時表示モードの場合は初期表示
+        if (isCommentsAlwaysVisible()) {
+            setTimeout(() => popover.show(), 0);
+        }
+    }
+
+    return container;
+}
+
+/**
+ * アノテーション用のポップオーバーを作成
+ */
+function createAnnotationPopover(x, y, comment, type) {
+    const popoverElement = document.createElement('div');
+    popoverElement.className = 'annotation-comment';
+    
+    // ポップオーバーの設定
+    const popover = new bootstrap.Popover(popoverElement, {
+        container: 'body',
+        placement: getPopoverPlacement(type),
+        trigger: 'manual',
+        content: comment
+    });
+
+    // 位置の設定
+    positionPopover(popoverElement, x, y, type);
+
+    // 初期表示状態の設定
+    if (isCommentsAlwaysVisible()) {
+        popover.show();
+    }
+
+    // クリックでトグル
+    popoverElement.addEventListener('click', () => {
+        popover.toggle();
+    });
+
+    document.body.appendChild(popoverElement);
+}
+
+/**
+ * ポップオーバーの表示位置を設定
+ */
+function positionPopover(element, x, y, type) {
+    element.style.position = 'absolute';
+    const offset = 10;  // 番号の円からのオフセット
+    
+    switch(type) {
+        case 'click':
+            element.style.left = `${x}px`;
+            element.style.top = `${y + offset}px`;
+            break;
+        case 'range':
+        case 'scene':
+            element.style.left = `${x + offset}px`;
+            element.style.top = `${y}px`;
+            break;
+    }
+}
+
+/**
+ * アノテーションタイプに応じたポップオーバーの配置を取得
+ */
+function getPopoverPlacement(type) {
+    switch(type) {
+        case 'click':
+            return 'bottom';
+        case 'range':
+            return 'right';
+        case 'scene':
+            return 'right';
+        default:
+            return 'bottom';
+    }
+}
+
+/**
+ * ユーザーIDに対応する色情報を取得
+ * @param {string} userId - ユーザーID
+ * @returns {Object|null} 色情報（bgとtextプロパティを持つ）
+ */
+function getUserColor(userId) {
+    const colorIndex = userColorAssignments.get(userId);
+    if (colorIndex !== undefined) {
+        return USER_COLORS[colorIndex];
+    }
+    return null;
+}
+
+/**
+ * コメントの常時表示が有効かどうかを判定（共通）
+ */
+function isCommentsAlwaysVisible() {
+    const checkbox = document.getElementById('showComments');
+    return checkbox && checkbox.checked;
 }
 
 /**
@@ -653,78 +1113,6 @@ function stopReplay() {
 }
 
 /**
- * クリック位置の描画
- */
-// function drawClickWithNumber(x, y, clickData) {
-//     // 赤い丸を描画
-//     ctx.beginPath();
-//     ctx.arc(x, y, 8, 0, 2 * Math.PI);
-//     ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-//     ctx.fill();
-    
-//     // IDを描画
-//     ctx.fillStyle = 'white';
-//     ctx.font = 'bold 10px Arial';
-//     ctx.textAlign = 'center';
-//     ctx.textBaseline = 'middle';
-//     ctx.fillText(clickData.id.toString(), x, y);
-// }
-
-/**
- * ツールチップの表示
- * @param {number} x - 表示位置のX座標
- * @param {number} y - 表示位置のY座標
- * @param {string} comment - 表示するコメント
- */
-function showClickTooltip(x, y, comment) {
-    // ツールチップの要素を取得
-    let tooltip = document.getElementById('clickTooltip');
-    if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.id = 'clickTooltip';
-        document.body.appendChild(tooltip);
-    }
-
-    // コメントを設定
-    tooltip.textContent = comment;
-    tooltip.style.display = 'block';
-
-    // ウィンドウのサイズを取得（画面端での位置調整用）
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    // ツールチップのサイズを取得
-    const tooltipWidth = tooltip.offsetWidth;
-    const tooltipHeight = tooltip.offsetHeight;
-
-    // 基準位置（赤丸の右下）から表示位置を計算
-    let posX = x;
-    let posY = y;
-
-    // 画面端をはみ出す場合
-    if (posX + tooltipWidth > windowWidth) {
-        posX = x - tooltipWidth - 8;  // 左側に表示
-    }
-    if (posY + tooltipHeight > windowHeight) {
-        posY = y - tooltipHeight - 8;  // 上側に表示
-    }
-
-    // 計算した位置にツールチップを表示
-    tooltip.style.left = `${posX}px`;
-    tooltip.style.top = `${posY}px`;
-}
-
-/**
- * ツールチップを非表示
- */
-function hideClickTooltip() {
-    const tooltip = document.getElementById('clickTooltip');
-    if (tooltip) {
-        tooltip.style.display = 'none';
-    }
-}
-
-/**
  * キャンバスをクリア
  */
 function clearCanvas() {
@@ -732,8 +1120,144 @@ function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+/**
+ * アノテーション表示をクリア
+ */
+function clearAnnotations() {
+    // 既存のコメント表示を削除
+    document.querySelectorAll('.click-bubble, .permanent-comment').forEach(el => el.remove());
+}
+
 //===========================================
-// ユーザー選択機能の追加
+// 左クリックのリプレイ機能
+//===========================================
+/**
+ * クリック座標のリプレイ描画d
+ */
+function drawReplayClick(x, y, color, comment, clickData) {
+    // デバッグ用
+    console.log('Click data in drawReplayClick:', clickData);
+    
+    if (!clickData || !clickData.id) {
+        console.error('Invalid click data:', clickData);
+        return;
+    }
+
+    handleAnnotationComment(x, y, clickData.id, comment, color, 'click');
+}
+
+//===========================================
+// 範囲選択の描画用
+//===========================================
+/**
+ * 範囲選択のリプレイ描画
+ */
+function drawReplayRange(range, color, comment) {
+    // 範囲の描画
+    ctx.fillStyle = color.replace('0.7', '0.2');  // 半透明
+    ctx.fillRect(range.start_x, range.start_y, range.width, range.height);
+    
+    // 範囲の枠線
+    ctx.strokeStyle = color.replace('0.7', '0.8');
+    ctx.lineWidth = 2;
+    ctx.strokeRect(range.start_x, range.start_y, range.width, range.height);
+
+    // 円・番号・コメントの描画：handleAnnotationComment（共通）で行う
+
+    handleAnnotationComment(
+        range.start_x + 20,  // 左から少し空ける
+        range.start_y + 20,  // 上から少し空ける
+        range.id,
+        comment,
+        color,
+        'range'
+    );
+}
+
+
+//===========================================
+// シーン記録のリプレイ機能
+//===========================================
+/**
+ * シーン記録のリプレイ描画
+ */
+function drawReplayScene(scene, color, comment, userId) {
+    const videoContainer = document.getElementById('video-container');
+    const containerWidth = videoContainer.offsetWidth;
+    
+    // ユーザーの色インデックスを取得（0, 1, 2）
+    const colorIndex = userColorAssignments.get(userId);    // userColorAssignmentsから取得
+    
+    // 色インデックスに基づいて縦位置を決定
+    const baseY = 50;  // 最上部の位置
+    const ySpacing = 40;  // ユーザー間の間隔
+    const y = baseY + (colorIndex * ySpacing);  // ユーザーごとの固定位置
+    
+    // x座標は一定（動画の右側）
+    const x = containerWidth + 30;
+
+    // 四角形の描画
+    ctx.beginPath();
+    ctx.rect(x - 15, y - 15, 30, 30);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 番号とコメントの描画
+    handleAnnotationComment(
+        x,
+        y,
+        scene.id,
+        comment,
+        color,
+        'scene'
+    );
+}
+
+//===========================================
+// リプレイに表示するユーザーの選択用チェックボックス
+//===========================================
+/**
+ * ユーザー選択のチェックボックス変更時の処理
+ */
+function handleUserCheckboxChange(e) {
+    if (e.target.checked) {
+        // 選択数の制限チェック
+        if (selectedUsers.size >= 3) {
+            e.preventDefault();
+            e.target.checked = false;
+            showModeError('制限', '最大3名まで選択可能です');
+            return;
+        }
+        
+        selectedUsers.add(e.target.value);
+        const nextColorIndex = userColorAssignments.size;
+        userColorAssignments.set(e.target.value, nextColorIndex);
+    } else {
+        selectedUsers.delete(e.target.value);
+        userColorAssignments.delete(e.target.value);
+        
+        // 残りのユーザーの色を再割り当て
+        const remainingUsers = Array.from(selectedUsers);
+        userColorAssignments.clear();
+        remainingUsers.forEach((userId, index) => {
+            userColorAssignments.set(userId, index);
+        });
+    }
+    
+    // 色プレビューの更新
+    updateColorPreviews();
+    
+    // 全てのデータテーブルを更新
+    fetchClickCoordinates();
+    fetchRangeData();
+    fetchSceneData();
+    
+    updateSelectedUsersDisplay();
+}
+
+//===========================================
+// テーブルに表示するユーザーの選択用ドロップダウン
 //===========================================
 /**
  * ユーザー選択機能の初期化
@@ -744,7 +1268,6 @@ function initializeUserSelect() {
     userSelectDiv.className = 'mb-3';
     userSelectDiv.innerHTML = `
         <div class="d-flex align-items-center mb-2">
-            <h6 class="me-3 mb-0">表示するユーザー：</h6>
             <div id="user-select"></div>
         </div>
     `;
@@ -768,6 +1291,8 @@ function fetchUserList() {
                 allUsers = data.users;
                 renderUserSelect();
                 fetchClickCoordinates();
+                fetchRangeData();
+                fetchSceneData()
             }
         })
         .catch(error => {
@@ -777,55 +1302,42 @@ function fetchUserList() {
 }
 
 /**
- * ユーザー選択UIの作成（ドロップダウン形式）
+ * ユーザー選択UIの作成（ドロップダウン）
  */
 function renderUserSelect() {
     const container = document.getElementById('user-select');
     if (!container) return;
 
-    container.innerHTML = `
-        <div class="dropdown">
-            <button class="btn btn-outline-primary dropdown-toggle" 
-                    type="button" 
-                    id="userDropdown" 
-                    data-bs-toggle="dropdown" 
-                    aria-expanded="false">
-                表示するユーザーを選択 (最大3名)
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="userDropdown" style="max-height: 200px; overflow-y: auto;">
-                ${allUsers.map(user => {
-                    const colorIndex = userColorAssignments.get(user.user_id);
-                    const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
-                    return `
-                        <li>
-                            <div class="dropdown-item">
-                                <div class="form-check">
-                                    <input class="form-check-input user-checkbox" 
-                                           type="checkbox" 
-                                           id="user-${user.user_id}" 
-                                           value="${user.user_id}"
-                                           ${selectedUsers.has(user.user_id) ? 'checked' : ''}>
-                                    <label class="form-check-label" for="user-${user.user_id}">
-                                        <span class="color-preview" style="
-                                            display: inline-block;
-                                            width: 12px;
-                                            height: 12px;
-                                            margin-right: 5px;
-                                            background-color: ${color};
-                                            border-radius: 50%;
-                                            border: 1px solid #ccc;
-                                        "></span>
-                                        ${user.name} (${user.user_id})
-                                    </label>
-                                </div>
-                            </div>
-                        </li>
-                    `;
-                }).join('')}
-            </ul>
-        </div>
-        <div id="selected-users-display" class="mt-2 small text-muted"></div>
-    `;
+    // ドロップダウンメニューの内容のみを更新
+    container.innerHTML = allUsers.map(user => {
+        const colorIndex = userColorAssignments.get(user.user_id);
+        const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : 'transparent';
+        return `
+            <li>
+                <div class="dropdown-item">
+                    <div class="form-check">
+                        <input class="form-check-input user-checkbox" 
+                               type="checkbox" 
+                               id="user-${user.user_id}" 
+                               value="${user.user_id}"
+                               ${selectedUsers.has(user.user_id) ? 'checked' : ''}>
+                        <label class="form-check-label" for="user-${user.user_id}">
+                            <span class="color-preview" style="
+                                display: inline-block;
+                                width: 12px;
+                                height: 12px;
+                                margin-right: 5px;
+                                background-color: ${color};
+                                border-radius: 50%;
+                                border: 1px solid #ccc;
+                            "></span>
+                            ${user.name} (${user.user_id})
+                        </label>
+                    </div>
+                </div>
+            </li>
+        `;
+    }).join('');
 
     // チェックボックスのイベント設定
     document.querySelectorAll('.user-checkbox').forEach(checkbox => {
@@ -857,9 +1369,12 @@ function renderUserSelect() {
             // 色プレビューの更新
             updateColorPreviews();
             fetchClickCoordinates();
+            fetchRangeData();
+            fetchSceneData();
             updateSelectedUsersDisplay();
         });
     });
+
     updateSelectedUsersDisplay();
 }
 
@@ -888,43 +1403,45 @@ function updateSelectedUsersDisplay() {
         .map(id => {
             const user = allUsers.find(u => u.user_id === id);
             const colorIndex = userColorAssignments.get(id);
-            // 色が割り当てられていない場合のデフォルト処理を追加
+            // 色が割り当てられていない場合のデフォルト処理
             const color = colorIndex !== undefined ? USER_COLORS[colorIndex].bg : '#000000';
-            return `<span style="color: ${color}">${user ? user.name : id}</span>`;
+            return `<span style="color: black; background-color: ${color};
+                        border: 1px solid black; padding: 2px; border-radius: 4px;">${user ? user.name : id}
+                    </span>`;
         })
         .join(', ');
     
     displayElement.innerHTML = `選択中: ${selectedInfo}`;
 }
 
-/**
- * リプレイ時の円の描画
- */
-function updateClickDisplay(currentTime) {
-    if (!player || !replayClickData) return;
 
-    clearCanvas();
-    
-    Object.entries(replayClickData).forEach(([userId, clicks]) => {
-        const colorIndex = userColorAssignments.get(userId);
-        if (colorIndex === undefined) return; // 色が割り当てられていない場合はスキップ
-        
-        const colorInfo = USER_COLORS[colorIndex];
-        clicks.forEach(click => {
-            const timeSinceClick = currentTime - click.click_time;
-            if (click.click_time <= currentTime && timeSinceClick <= 2.0) {
-                drawReplayClick(
-                    click.x, 
-                    click.y, 
-                    colorInfo.bg, 
-                    click.comment,
-                    click
-                );
+//===========================================
+// リプレイするアノテーションの種類選択用ドロップダウン
+//===========================================
+/**
+ * リプレイ表示設定の初期化
+ */
+function initializeReplaySettings() {
+    // チェックボックスの状態変更時の処理
+    ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', function() {
+            // リプレイ中であれば表示を更新
+            if (isReplayEnabled) {
+                clearCanvas();
+                const currentTime = player.getCurrentTime();
+                updateReplayDisplay(currentTime);
             }
         });
     });
 }
 
+
+//===========================================
+// データ表示テーブル➀（クリック座標）
+//===========================================
+/**
+ * クリック座標データの取得
+ */
 function fetchClickCoordinates() {
     console.log('データ取得中...'); 
     
@@ -964,9 +1481,6 @@ function displayCoordinates(coordinates) {
     const container = document.getElementById('coordinate-data');
     if (!container) return;
 
-    // デバッグ用
-    console.log('Current color assignments:', Array.from(userColorAssignments.entries()));
-
     const table = document.createElement('table');
     table.className = 'table';
 
@@ -984,8 +1498,6 @@ function displayCoordinates(coordinates) {
             ${coordinates.map(coord => {
                 // ユーザーの色を取得
                 const colorIndex = userColorAssignments.get(coord.user_id);
-                // デバッグ用
-                // console.log('Coordinate:', coord, 'Color Index:', colorIndex);
                 
                 // 色が割り当てられている場合のみ背景色を設定
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
@@ -1020,6 +1532,181 @@ function getLuminance(color) {
     }
     return 0.5; // デフォルト値
 }
+
+//===========================================
+// データ表示テーブル➁➂（範囲選択，シーン記録）
+//===========================================
+/**
+ * タブ切り替えとデータ表示の初期化
+ */
+function initializeTabsAndData() {
+    // タブ切り替え時のイベントリスナー設定
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(event) {
+            switch(event.target.dataset.bsTarget) {
+                case '#clicks-tab':
+                    fetchClickCoordinates();
+                    break;
+                case '#ranges-tab':
+                    fetchRangeData();
+                    break;
+                case '#scenes-tab':
+                    fetchSceneData();
+                    break;
+            }
+        });
+    });
+
+    // 初期表示時のデータ取得
+    fetchClickCoordinates();
+}
+
+/**
+ * 範囲選択データの取得
+ */
+function fetchRangeData() {
+    console.log('範囲選択データ取得中...'); 
+    
+    // 選択されているユーザーがいない場合の処理
+    if (selectedUsers.size === 0) {
+        const container = document.getElementById('range-data');
+        container.innerHTML = '<p class="text-center">ユーザーを選択してください</p>';
+        return;
+    }
+
+    const postData = {
+        user_ids: Array.from(selectedUsers),
+        video_id: videoId
+    };
+
+    fetch('./coordinate/php/fetch_range_data.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            displayRangeData(data.data);
+        }
+    })
+    .catch(error => {
+        console.error('範囲選択データの取得失敗:', error);
+    });
+}
+
+/**
+ * 範囲選択データをテーブル形式で表示（色分け対応）
+ */
+function displayRangeData(ranges) {
+    const container = document.getElementById('range-data');
+    if (!container) return;
+
+    const table = document.createElement('table');
+    table.className = 'table';
+
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 10%;">No.</th>
+                <th style="width: 20%;">時間</th>
+                <th style="width: 30%;">選択範囲</th>
+                <th style="width: 40%;">コメント</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ranges.map(range => {
+                const colorIndex = userColorAssignments.get(range.user_id);
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${range.id}</td>
+                        <td>${Number(range.click_time).toFixed(2)}s</td>
+                        <td>X:${Number(range.start_x)} Y:${Number(range.start_y)} 
+                            W:${Number(range.width)} H:${Number(range.height)}</td>
+                        <td class="text-break">${range.comment || ''}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(table);
+}
+
+/**
+ * シーン記録データの取得
+ */
+function fetchSceneData() {
+    console.log('シーン記録データ取得中...'); 
+    
+    if (selectedUsers.size === 0) {
+        const container = document.getElementById('scene-data');
+        container.innerHTML = '<p class="text-center">ユーザーを選択してください</p>';
+        return;
+    }
+
+    const postData = {
+        user_ids: Array.from(selectedUsers),
+        video_id: videoId
+    };
+
+    fetch('./coordinate/php/fetch_scene_data.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            displaySceneData(data.data);
+        }
+    })
+    .catch(error => {
+        console.error('シーン記録データの取得失敗:', error);
+    });
+}
+
+/**
+ * シーン記録データをテーブル形式で表示（色分け対応）
+ */
+function displaySceneData(scenes) {
+    const container = document.getElementById('scene-data');
+    if (!container) return;
+
+    const table = document.createElement('table');
+    table.className = 'table';
+
+    table.innerHTML = `
+        <thead class="table-light">
+            <tr>
+                <th style="width: 10%;">No.</th>
+                <th style="width: 20%;">時間</th>
+                <th style="width: 70%;">コメント</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${scenes.map(scene => {
+                const colorIndex = userColorAssignments.get(scene.user_id);
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${scene.id}</td>
+                        <td>${Number(scene.click_time).toFixed(2)}s</td>
+                        <td class="text-break">${scene.comment || ''}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(table);
+}
+
 
 //===========================================
 // ミスボタン
@@ -1162,6 +1849,7 @@ function handleCommentSubmit() {
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
+
             // モーダルを閉じる処理
             const modal = document.getElementById('commentModal');
             const commentModal = bootstrap.Modal.getInstance(modal);
@@ -1182,6 +1870,8 @@ function handleCommentSubmit() {
             
             // データを更新
             fetchClickCoordinates();
+            fetchRangeData();
+            fetchSceneData();
         }
     })
     .catch(error => {
@@ -1375,6 +2065,14 @@ function handleReplayChange(event) {
     }
 }
 
+/**
+ * コメントの常時表示が有効かどうかを判定
+ */
+function isCommentsAlwaysVisible() {
+    const checkbox = document.getElementById('showComments');
+    return checkbox && checkbox.checked;
+}
+
 //===========================================
 // エラー表示処理
 //===========================================
@@ -1422,216 +2120,3 @@ function showModeError(mode, message) {
     }, 500);
 }
 
-//===========================================
-// 右クリック
-//===========================================
-/**
- * 1. コンテキストメニューの初期化と表示制御
- */
-function initializeContextMenu() {
-    const canvas = document.getElementById('myCanvas');
-    const contextMenu = document.getElementById('customContextMenu');
-
-    // 閉じるボタンの処理
-    const closeButton = contextMenu.querySelector('.btn-close');
-    if (closeButton) {
-        closeButton.addEventListener('click', function(e) {
-            // イベントの伝播を止める（メニュー項目のクリックを防ぐため）
-            e.preventDefault();
-            e.stopPropagation();
-
-            // メニューを非表示
-            contextMenu.style.display = 'none';
-
-            // 動画を再生（一時停止していた場合）
-            if (player) {
-                player.playVideo();
-            } 
-        });
-    }
-
-    // 右クリック処理
-    canvas.addEventListener('contextmenu', function(e) {
-        // 座標取得モードがオフ、またはリプレイモード中は右クリックメニューを表示しない
-        if (!isCoordinateEnabled || isReplayEnabled) {
-            e.preventDefault(); // ブラウザのデフォルト右クリックメニューを防ぐ
-            return;
-        }
-
-        e.preventDefault();  // ブラウザのデフォルト右クリックメニューを防ぐ
-        e.stopPropagation(); // 他のイベントハンドラへの伝播を停止
-
-        player.pauseVideo();
-
-        contextMenu.style.display = 'block';
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.style.top = `${e.clientY}px`;
-        
-        const canvas = e.target;
-        rangeStartX = e.clientX - canvas.getBoundingClientRect().left;
-        rangeStartY = e.clientY - canvas.getBoundingClientRect().top;
-    });
-
-
-    // デバッグ用：右クリックイベントが発火しているか確認
-    canvas.addEventListener('mousedown', function(e) {
-        if (e.button === 2) { // 右クリック
-            console.log('Right click detected');
-        }
-    });
-
-    // メニューアイテムのクリックイベント
-    contextMenu.addEventListener('click', function(e) {
-        const action = e.target.closest('.context-menu-item')?.dataset.action;
-        if (!action) return;
-    
-        // 通常のクリック記録を防ぐためにフラグを設定
-        e.preventDefault();
-        e.stopPropagation();
-        
-        switch (action) {
-            case 'range':
-                startRangeSelection();
-                break;
-            case 'scene':
-                const currentTime = player.getCurrentTime();
-                tempSelectionData = {
-                    type: 'scene',
-                    data: {
-                        time: currentTime
-                    }
-                };
-                showCommentModal('scene');
-                break;
-        }
-        contextMenu.style.display = 'none';
-    });
-
-    // メニュー以外をクリックした時に閉じる
-    document.addEventListener('click', function(e) {
-        if (!contextMenu.contains(e.target)) {
-            contextMenu.style.display = 'none';
-        }
-    });
-}
-
-/**
- * 2. 範囲選択の開始処理
- */
-function startRangeSelection() {
-    const canvas = document.getElementById('myCanvas');
-    isDrawingRange = true;
-
-    // 最初のクリックで開始位置を設定
-    function onFirstClick(e) {
-        // 通常のクリックイベントを防止
-        e.preventDefault();
-        e.stopPropagation();
-
-        const rect = canvas.getBoundingClientRect();
-        rangeStartX = e.clientX - rect.left;
-        rangeStartY = e.clientY - rect.top;
-
-        // 開始位置が設定されたら、次のクリックのリスナーを設定
-        canvas.removeEventListener('click', onFirstClick);
-        canvas.addEventListener('click', onSecondClick);
-
-        // マウス移動時の範囲プレビュー表示を開始
-        canvas.addEventListener('mousemove', onMouseMove);
-    }
-
-    // マウス移動時の範囲プレビュー
-    function onMouseMove(e) {
-        if (!isDrawingRange) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const currentX = e.clientX - rect.left;
-        const currentY = e.clientY - rect.top;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(0, 123, 255, 0.2)';
-        ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)';
-        ctx.lineWidth = 2;
-
-        const width = currentX - rangeStartX;
-        const height = currentY - rangeStartY;
-        ctx.fillRect(rangeStartX, rangeStartY, width, height);
-        ctx.strokeRect(rangeStartX, rangeStartY, width, height);
-    }
-
-    // 2回目のクリックで範囲を確定
-    function onSecondClick(e) {
-        // 通常のクリックイベントを防止
-        e.preventDefault();
-        e.stopPropagation();
-
-        const rect = canvas.getBoundingClientRect();
-        const endX = e.clientX - rect.left;
-        const endY = e.clientY - rect.top;
-
-        // 範囲選択データを保存
-        tempSelectionData = {
-            type: 'range',
-            data: {
-                startX: Math.min(rangeStartX, endX),
-                startY: Math.min(rangeStartY, endY),
-                width: Math.abs(endX - rangeStartX),
-                height: Math.abs(endY - rangeStartY),
-                time: player.getCurrentTime()
-            }
-        };
-
-        // イベントリスナーを削除
-        canvas.removeEventListener('click', onSecondClick);
-        canvas.removeEventListener('mousemove', onMouseMove);
-        
-        // キャンバスをクリア
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 範囲選択モードを終了
-        isDrawingRange = false;
-
-        // コメント入力モーダルを表示
-        showCommentModal('range');
-    }
-
-    // 最初のクリックのリスナーを設定
-    canvas.addEventListener('click', onFirstClick);
-}
-
-/**
- * 3．範囲選択の終了処理
- */
-function endSelection(e) {
-    if (!isDrawingRange) return;
-    
-    // イベントの伝播を停止して通常のクリック処理を防ぐ
-    e.preventDefault();
-    e.stopPropagation();
-    
-    isDrawingRange = false;
-
-    // 選択範囲データの保存準備
-    const canvas = document.getElementById('myCanvas');
-    const rect = canvas.getBoundingClientRect();
-    const endX = e.clientX - rect.left;
-    const endY = e.clientY - rect.top;
-
-    // 選択範囲のデータを一時保存
-    tempSelectionData = {
-        type: 'range',
-        data: {
-            startX: Math.min(rangeStartX, endX),  // 左上のX座標
-            startY: Math.min(rangeStartY, endY),  // 左上のY座標
-            width: Math.abs(endX - rangeStartX),  // 範囲の幅
-            height: Math.abs(endY - rangeStartY), // 範囲の高さ
-            time: player.getCurrentTime()         // 記録時間
-        }
-    };
-
-    // キャンバスをクリア
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // コメント入力モーダルを表示
-    showCommentModal('range');
-}

@@ -103,20 +103,104 @@
                         </div>
                     </div>
 
-                    <!--座標データ表示-->
+                    <!-- データ表示カード内のリプレイ表示設定部分 -->
                     <div class="card mt-3">
                         <div class="card-body">
-                            <h5 class="card-title">クリック座標データ</h5>
-                            <!-- ユーザー選択部分を追加 -->
+                            <!-- リプレイ表示設定部分を2つに分割 -->
                             <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <!-- <h6 class="me-3 mb-0">表示するユーザー：</h6> -->
-                                    <div id="user-select" class="d-flex flex-wrap gap-2">
-                                        <!-- ユーザー選択チェックボックスの追加 -->
-                                    </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" 
+                                            type="button" 
+                                            id="replaySettingsDropdown" 
+                                            data-bs-toggle="dropdown">
+                                            リプレイに表示させる記録の選択
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showClicks" checked>
+                                                    <label class="form-check-label" for="showClicks">
+                                                        クリック座標
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showRanges" checked>
+                                                    <label class="form-check-label" for="showRanges">
+                                                        範囲選択
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="dropdown-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="showScenes" checked>
+                                                    <label class="form-check-label" for="showScenes">
+                                                        シーン記録
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <!-- コメント表示設定を分離 -->
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="showComments" checked>
+                                    <label class="form-check-label" for="showComments">
+                                        コメントを常時表示
+                                    </label>
                                 </div>
                             </div>
-                            <div id="coordinate-data" class="table-responsive"></div>
+
+                            <!-- ユーザー選択ドロップダウン -->
+                            <div class="mb-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" 
+                                            type="button" id="userDropdown" data-bs-toggle="dropdown">
+                                        表示するユーザーを選択 (最大3名)
+                                    </button>
+                                    <ul class="dropdown-menu" id="user-select"></ul>
+                                </div>
+                                <div id="selected-users-display" class="mt-2 small text-muted"></div>
+                            </div>
+
+                            <!-- タブナビゲーション -->
+                            <ul class="nav nav-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clicks-tab" type="button">
+                                        クリック座標データ
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ranges-tab" type="button">
+                                        範囲選択データ
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#scenes-tab" type="button">
+                                        シーン記録データ
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- タブコンテンツ -->
+                            <div class="tab-content mt-3">
+                                <div class="tab-pane fade show active" id="clicks-tab">
+                                    <div id="coordinate-data" class="table-responsive"></div>
+                                </div>
+                                <div class="tab-pane fade" id="ranges-tab">
+                                    <div id="range-data" class="table-responsive"></div>
+                                </div>
+                                <div class="tab-pane fade" id="scenes-tab">
+                                    <div id="scene-data" class="table-responsive"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
