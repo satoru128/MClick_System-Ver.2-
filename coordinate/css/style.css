@@ -45,8 +45,7 @@
     border-collapse: collapse;
 }
 
-#coordinate-data th, 
-#coordinate-data td {
+#coordinate-data th, #coordinate-data td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
@@ -160,55 +159,54 @@
 }
 
 
-/* 番号の丸枠のスタイル */
-.number-circle {
+/* リプレイ時のスタイル設定 */
+.annotation-container { /* アノテーションの親要素 */
     position: absolute;
-    z-index: 3;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 1000;
+    pointer-events: all;
 }
 
-/* コメントツールチップの改善 */
-#clickTooltip {
-    position: fixed;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
+.annotation-circle {    /* 丸 */
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1.5px solid #000;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.annotation-number {    /* 番号 */
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;  /* 中央揃え */
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
     font-size: 12px;
-    max-width: 250px;  /* コメントの最大幅 */
-    word-wrap: break-word;  /* 長文の折り返し */
+    z-index: 1001;
 }
 
-/* 常時表示コメントのスタイル */
-.permanent-comment {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    max-width: 200px;
+.popover {  /* ポップオーバーのカスタマイズ */
+    max-width: 250px;   
     word-wrap: break-word;
+    z-index: 1002;
 }
 
-/* クリック時の吹き出しスタイル */
-.click-bubble {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    max-width: 200px;
-    word-wrap: break-word;
+.annotation-number:hover {  /* ホバー時のリンクスタイル */
+    color: #0056b3;
 }
 
-.click-bubble:after {
-    content: '';
+.annotation-square {
+    width: 100%;
+    height: 100%;
+    border: 1.5px solid #000;
     position: absolute;
-    left: 50%;
-    top: -8px;
-    border-width: 0 8px 8px;
-    border-style: solid;
-    border-color: rgba(0, 0, 0, 0.8) transparent;
-    margin-left: -8px;
+    top: 0;
+    left: 0;
 }
