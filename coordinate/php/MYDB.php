@@ -8,7 +8,7 @@
 function db_connect(){
     // データベース接続に必要な情報
     $db_user = "root";    // データベースのユーザー名
-    $db_pass = "satoru0411";  // パスワード
+    $db_pass = "yudai0606";  // パスワード
     $db_host = "localhost";   // ホスト名
     $db_name = "coordinates_db";  // データベース名
     $db_type = "mysql";    // データベースの種類

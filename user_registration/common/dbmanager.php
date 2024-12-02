@@ -10,7 +10,7 @@ class DBManager {
         $db_host = 'localhost'; // データベースホスト
         $db_name = 'coordinates_db'; // データベース名
         $db_user = 'root'; // データベースユーザー名
-        $db_pass = 'satoru0411'; // データベースパスワード
+        $db_pass = 'yudai0606'; // データベースパスワード
         
         // データベース接続
         try {
