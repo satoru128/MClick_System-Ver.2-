@@ -105,6 +105,16 @@ function onPlayerReady(event) {
 
 function onPlayerStateChange(event) {
     isPlaying = (event.data === YT.PlayerState.PLAYING);  // 再生中かどうかを更新
+
+    // 再生開始時にポップオーバーの位置を更新する処理を追加
+    if (isPlaying && isCommentsAlwaysVisible()) {
+        document.querySelectorAll('.annotation-container').forEach(container => {
+            const popover = bootstrap.Popover.getInstance(container);
+            if (popover) {
+                popover.update();
+            }
+        });
+    }
 }
 
 // エラーハンドラ
@@ -703,7 +713,7 @@ function endSelection(e) {
 // リプレイ機能（共通表示）
 //===========================================
 /**
- * リプレイの初期化処理
+ * リプレイの初期化
  */
 function initializeReplay() {
     // 選択されているユーザーが0の場合
@@ -832,60 +842,26 @@ function startReplayMonitoring() {
 }
 
 /**
- * リプレイの基本機能（共通）削除予定
- */
-function handleReplayBaseFeatures(data, currentTime, userId) {
-    // データが記録されてからの経過時間を計算
-    const timeSinceEvent = currentTime - data.click_time;
-    
-    // ユーザーに割り当てられた色を取得
-    const colorIndex = userColorAssignments.get(userId);
-    const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
-
-    return {
-        // 表示条件：記録時間に到達し，2秒以内であること
-        shouldDisplay: (data.click_time <= currentTime && timeSinceEvent <= 2.0),
-        timeSinceEvent: timeSinceEvent,
-        color: color
-    };
-}
-
-/**
  * 全アノテーションのリプレイ表示用（メイン）
  * @param {number} currentTime - 現在の再生時間
  */
 function updateReplayDisplay(currentTime) {
     if (!player || !isReplayEnabled) return;
 
-    // ポップオーバーのクリーンアップ
-    activePopovers.forEach(item => {
-        item.popover.dispose();
-        if (item.element) {
-            item.element.remove();
-        }
-    });
-    activePopovers = [];
-  
+    // 前回のポップオーバーとアノテーションをクリーンアップ
+    clearReplayElements();
     clearCanvas();
-    clearAnnotations();
-    
+
     // クリックデータの表示
     if (document.getElementById('showClicks').checked && replayClickData) {
         Object.entries(replayClickData).forEach(([userId, clicks]) => {
-            const colorIndex = userColorAssignments.get(userId);
-            if (colorIndex === undefined) return;
+            const colorInfo = getUserColor(userId);
+            if (!colorInfo) return;
             
-            const colorInfo = USER_COLORS[colorIndex];
             clicks.forEach(click => {
                 const timeDiff = currentTime - click.click_time;
-                if (click.click_time <= currentTime && timeDiff <= 2.0) {
-                    drawReplayClick(
-                        click.x,
-                        click.y,
-                        colorInfo.bg,
-                        click.comment,
-                        click
-                    );
+                if (timeDiff >= 0 && timeDiff <= 2.0) {
+                    drawReplayClick(click.x, click.y, colorInfo.bg, click.comment, click);
                 }
             });
         });
@@ -894,14 +870,13 @@ function updateReplayDisplay(currentTime) {
     // 範囲選択データの表示
     if (document.getElementById('showRanges').checked && replayRangeData) {
         Object.entries(replayRangeData).forEach(([userId, ranges]) => {
-            const colorIndex = userColorAssignments.get(userId);
-            if (colorIndex === undefined) return;
+            const color = getUserColor(userId);
+            if (!color) return;
             
-            const colorInfo = USER_COLORS[colorIndex];
             ranges.forEach(range => {
                 const timeDiff = currentTime - range.click_time;
-                if (range.click_time <= currentTime && timeDiff <= 3.0) {
-                    drawReplayRange(range, colorInfo.bg, range.comment);
+                if (timeDiff >= 0 && timeDiff <= 3.0) {
+                    drawReplayRange(range, color.bg, range.comment);
                 }
             });
         });
@@ -910,39 +885,90 @@ function updateReplayDisplay(currentTime) {
     // シーン記録データの表示
     if (document.getElementById('showScenes').checked && replaySceneData) {
         Object.entries(replaySceneData).forEach(([userId, scenes]) => {
-            const colorIndex = userColorAssignments.get(userId);
-            if (colorIndex === undefined) return;
+            const color = getUserColor(userId);
+            if (!color) return;
             
-            const colorInfo = USER_COLORS[colorIndex];
             scenes.forEach(scene => {
                 const timeDiff = currentTime - scene.click_time;
-                if (scene.click_time <= currentTime && timeDiff <= 2.0) {
-                    drawReplayScene(scene, colorInfo.bg, scene.comment, userId);
+                if (timeDiff >= 0 && timeDiff <= 2.0) {
+                    drawReplayScene(scene, color.bg, scene.comment, userId);
                 }
             });
         });
     }
+
+    // コメント常時表示モードの場合
+    if (isCommentsAlwaysVisible()) {
+        setTimeout(() => {
+            document.querySelectorAll('.annotation-container').forEach(container => {
+                const popover = bootstrap.Popover.getInstance(container);
+                if (popover) {
+                    popover.show();
+                }
+            });
+        }, 100);
+    }
 }
+
+/**
+ * リプレイ要素のクリーンアップ
+ */
+function clearReplayElements() {
+    // 現在表示中のアノテーションコンテナを取得
+    const currentContainers = new Set(
+        document.querySelectorAll('.annotation-container')
+    );
+
+    // アクティブなポップオーバーをチェック
+    activePopovers = activePopovers.filter(item => {
+        // 要素が存在しない、またはポップオーバーが不要になった場合
+        if (!document.body.contains(item.element) || 
+            !currentContainers.has(item.element)) {
+            if (item.popover && document.body.contains(item.element)) {
+                try {
+                    item.popover.dispose();
+                } catch (error) {
+                    console.warn('Popover cleanup error:', error);
+                }
+            }
+            return false;
+        }
+        return true;
+    });
+
+    // 表示中のポップオーバーがないコンテナを削除
+    currentContainers.forEach(container => {
+        if (!container.classList.contains('popover-shown')) {
+            if (document.body.contains(container)) {
+                container.remove();
+            }
+        }
+    });
+}
+
 
 /**
  * コメント表示（共通）
  */
 function handleAnnotationComment(x, y, id, comment, color, type) {
-    // 要素のID設定
     const elementId = `annotation-${type}-${id}`;
     
-    // 既存の要素があれば削除
+    // 既存要素のクリーンアップ
     const existingElement = document.getElementById(elementId);
     if (existingElement) {
+        const existingPopover = bootstrap.Popover.getInstance(existingElement);
+        if (existingPopover) {
+            existingPopover.dispose();
+        }
         existingElement.remove();
     }
 
-    // コンテナ要素の作成
+    // コンテナの作成
     const container = document.createElement('div');
     container.id = elementId;
     container.className = 'annotation-container';
 
-    // 丸要素の作成
+    // 形状要素の作成
     const shape = document.createElement('div');
     shape.className = type === 'scene' ? 'annotation-square' : 'annotation-circle';
     shape.style.backgroundColor = color;
@@ -952,144 +978,92 @@ function handleAnnotationComment(x, y, id, comment, color, type) {
     number.className = 'annotation-number';
     number.textContent = id.toString();
 
-    // 要素を組み立て
+    // 要素の組み立て
     container.appendChild(shape);
     container.appendChild(number);
 
-    // videoコンテナに追加
+    // videoコンテナに追加してから位置設定
     const videoContainer = document.getElementById('video-container');
     videoContainer.appendChild(container);
 
     // 位置設定
-    if (type === 'scene') {
-        // シーン記録用の位置設定
-        container.style.left = `${x}px`;
-        container.style.top = `${y}px`;
-    } else {
-        container.style.left = `${x}px`;
-        container.style.top = `${y}px`;
-    }
+    container.style.left = `${x}px`;
+    container.style.top = `${y}px`;
 
-    // コメントがある場合はポップオーバーを設定
+    // コメントがある場合のポップオーバー設定
     if (comment) {
-        const elementKey = `${type}-${id}`;
-        
-        // DOMの準備を待ってからポップオーバーを初期化
-        setTimeout(() => {
-            const popover = new bootstrap.Popover(container, {
-                container: 'body',
-                placement: getPopoverPlacement(type),
-                trigger: 'click',
-                content: comment,
-                html: true,
-                offset: [0, 10],
-                template: `
-                    <div class="popover ${type}-popover" role="tooltip">
-                        <div class="popover-arrow"></div>
-                        <div class="popover-body"></div>
-                    </div>
-                `
-            });
-    
-            activePopovers.push({
-                element: container,
-                popover: popover
-            });
-    
-            // コメント常時表示モードの初期状態設定
-            if (isCommentsAlwaysVisible()) {
-                // 少し遅延を入れてポップオーバーを表示
-                setTimeout(() => {
-                    if (document.body.contains(container)) {
-                        try {
+        // 要素が完全にDOMに追加されてから初期化
+        requestAnimationFrame(() => {
+            try {
+                const popover = new bootstrap.Popover(container, {
+                    container: 'body',
+                    placement: 'right',
+                    trigger: 'manual',
+                    content: comment
+                });
+
+                // アクティブなポップオーバーとして記録
+                activePopovers.push({
+                    element: container,
+                    popover: popover
+                });
+
+                // クリックイベントの設定
+                container.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isShown = container.classList.contains('popover-shown');
+                    
+                    try {
+                        if (isShown) {
+                            popover.hide();
+                            container.classList.remove('popover-shown');
+                        } else {
                             popover.show();
-                        } catch (e) {
-                            console.log('Initial popover show error:', e);
+                            container.classList.add('popover-shown');
                         }
+                    } catch (error) {
+                        console.warn('Popover toggle error:', error);
                     }
-                }, 100);
-            }
-    
-            // クリックイベントの処理
-            container.addEventListener('click', () => {
-                try {
-                    popover.toggle();
-                } catch (e) {
-                    console.log('Popover toggle error:', e);
+                });
+
+                // コメント常時表示モードの場合
+                if (isCommentsAlwaysVisible()) {
+                    setTimeout(() => {
+                        if (document.body.contains(container)) {
+                            try {
+                                popover.show();
+                                container.classList.add('popover-shown');
+                            } catch (error) {
+                                console.warn('Initial popover show error:', error);
+                            }
+                        }
+                    }, 100);
                 }
-            });
-        }, 0);
+            } catch (error) {
+                console.warn('Popover initialization error:', error);
+            }
+        });
     }
 
     return container;
 }
 
 /**
- * アノテーション用のポップオーバーを作成
+ * タイプに応じたポップオーバーのオフセットを取得
  */
-function createAnnotationPopover(x, y, comment, type) {
-    const popoverElement = document.createElement('div');
-    popoverElement.className = 'annotation-comment';
-    
-    // ポップオーバーの設定
-    const popover = new bootstrap.Popover(popoverElement, {
-        container: 'body',
-        placement: getPopoverPlacement(type),
-        trigger: 'manual',
-        content: comment
-    });
-
-    // 位置の設定
-    positionPopover(popoverElement, x, y, type);
-
-    // 初期表示状態の設定
-    if (isCommentsAlwaysVisible()) {
-        popover.show();
-    }
-
-    // クリックでトグル
-    popoverElement.addEventListener('click', () => {
-        popover.toggle();
-    });
-
-    document.body.appendChild(popoverElement);
-}
-
-/**
- * ポップオーバーの表示位置を設定
- */
-function positionPopover(element, x, y, type) {
-    element.style.position = 'absolute';
-    const offset = 10;  // 番号の円からのオフセット
-    
+function getPopoverOffset(type) {
     switch(type) {
         case 'click':
-            element.style.left = `${x}px`;
-            element.style.top = `${y + offset}px`;
-            break;
+            return [0, 15];  // 上下0px, 左右15px
         case 'range':
+            return [0, 15];  // 上下0px, 左右15px
         case 'scene':
-            element.style.left = `${x + offset}px`;
-            element.style.top = `${y}px`;
-            break;
-    }
-}
-
-/**
- * アノテーションタイプに応じたポップオーバーの配置を取得
- */
-function getPopoverPlacement(type) {
-    switch(type) {
-        case 'click':
-            return 'right';
-        case 'range':
-            return 'right';
-        case 'scene':
-            return 'right';
+            return [-5, 20]; // 上に5px, 右に20px
         default:
-            return 'auto';
+            return [0, 15];
     }
 }
+
 
 /**
  * ユーザーIDに対応する色情報を取得
@@ -2078,13 +2052,6 @@ function handleReplayChange(event) {
     }
 }
 
-/**
- * コメントの常時表示が有効かどうかを判定
- */
-function isCommentsAlwaysVisible() {
-    const checkbox = document.getElementById('showComments');
-    return checkbox && checkbox.checked;
-}
 
 //===========================================
 // エラー表示処理
@@ -2132,4 +2099,3 @@ function showModeError(mode, message) {
         checkbox.classList.remove('error-shake');
     }, 500);
 }
-

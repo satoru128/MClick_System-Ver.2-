@@ -128,7 +128,7 @@ function show_edit_input_common($name, $user_id, $password, $old_user_id, $data,
     <div class="mx-auto text-center" style="max-width: 400px;">
     <p class="mt-3">すでにアカウントをお持ちの場合は、<a href="../../login/login.php" class="text-decoration-none">ログイン</a>してください。</p>
     </div>
-INPUT_FORM;
+    INPUT_FORM;
 }
 
 //  削除フォームの表示
