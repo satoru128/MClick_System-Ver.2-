@@ -17,6 +17,7 @@ let replayIntervalId = null; // モニタリング用のインターバルID
 let selectedUsers = new Set(); // 選択されたユーザーのIDを保持
 let allUsers = []; // 全ユーザーのリストを保持
 let tempSelectionData = null;  // 一時的な選択データを保持
+let popoverStates = new Map();  // ポップオーバーの表示状態を記憶
 let activePopovers = [];     // アクティブなポップオーバーを管理
 
 // クリック座標表示用の色の定義
@@ -173,7 +174,7 @@ function setupAnnotationControls() {
     const commentBtn = document.getElementById('commentBtn');
 
     //データのエクスポートボタン
-    const exportBtn =  document.getElementById('exportBtn')
+    const exportBtn =  document.getElementById('exportBtn');
  
     // 座標取得モードの切り替え
     if (toggleBtn) {
@@ -702,7 +703,7 @@ function endSelection(e) {
 // リプレイ機能（共通表示）
 //===========================================
 /**
- * リプレイの初期化処理（データの取得，動画の初期化，モニタリングの開始）
+ * リプレイの初期化処理
  */
 function initializeReplay() {
     // 選択されているユーザーが0の場合
@@ -715,6 +716,7 @@ function initializeReplay() {
     // 動画を停止して最初に巻き戻す
     player.seekTo(0);
     clearCanvas();
+    popoverStates.clear();  // ポップオーバーの表示状態をリセット
 
     // 選択されたユーザーのクリックデータ取得
     Promise.all([
@@ -804,7 +806,7 @@ function initializeReplay() {
 }
 
 /**
- * リプレイのモニタリング開始
+ * リプレイ時の監視開始（200msごとに更新）
  */
 function startReplayMonitoring() {
     // 既存のモニタリングがあれば停止
@@ -826,16 +828,11 @@ function startReplayMonitoring() {
         
         const currentTime = player.getCurrentTime();
         updateReplayDisplay(currentTime);
-    }, 100);  // 100ミリ秒間隔で更新
+    }, 200);
 }
 
 /**
- * リプレイの基本機能（共通）
- * 全てのアノテーションタイプで共通して使用する表示処理
- * @param {Object} data - アノテーションデータ（click_time等を含む）
- * @param {number} currentTime - 現在の再生時間
- * @param {string} userId - ユーザーID
- * @returns {Object} 表示制御情報（表示判定，経過時間，色情報）
+ * リプレイの基本機能（共通）削除予定
  */
 function handleReplayBaseFeatures(data, currentTime, userId) {
     // データが記録されてからの経過時間を計算
@@ -931,12 +928,6 @@ function updateReplayDisplay(currentTime) {
  * コメント表示（共通）
  */
 function handleAnnotationComment(x, y, id, comment, color, type) {
-    // 無効なIDのチェック
-    if (id === undefined || id === null) {
-        console.error('Invalid ID in handleAnnotationComment:', { x, y, id, type });
-        return;
-    }
-    
     // 要素のID設定
     const elementId = `annotation-${type}-${id}`;
     
@@ -951,13 +942,9 @@ function handleAnnotationComment(x, y, id, comment, color, type) {
     container.id = elementId;
     container.className = 'annotation-container';
 
-    // シーン記録の場合は四角形、それ以外は丸を作成
+    // 丸要素の作成
     const shape = document.createElement('div');
-    if (type === 'scene') {
-        shape.className = 'annotation-square'; // 四角形
-    } else {
-        shape.className = 'annotation-circle';  // 丸
-    }
+    shape.className = type === 'scene' ? 'annotation-square' : 'annotation-circle';
     shape.style.backgroundColor = color;
 
     // 番号要素の作成
@@ -973,11 +960,10 @@ function handleAnnotationComment(x, y, id, comment, color, type) {
     const videoContainer = document.getElementById('video-container');
     videoContainer.appendChild(container);
 
-    // 位置設定（シーン記録の場合は右側に固定）
+    // 位置設定
     if (type === 'scene') {
-        const containerWidth = videoContainer.offsetWidth;
-        container.style.left = `${containerWidth + 30}px`;  // 動画の右側に30px余白
-        // yはそのまま使用（呼び出し側で計算された値）
+        // シーン記録用の位置設定
+        container.style.left = `${x}px`;
         container.style.top = `${y}px`;
     } else {
         container.style.left = `${x}px`;
@@ -986,25 +972,53 @@ function handleAnnotationComment(x, y, id, comment, color, type) {
 
     // コメントがある場合はポップオーバーを設定
     if (comment) {
-        const popover = new bootstrap.Popover(container, {
-            container: '#video-container',
-            placement: getPopoverPlacement(type),
-            trigger: 'click',
-            content: comment,
-            html: true,
-            offset: [0, 10]
-        });
-
-        // アクティブなポップオーバーとして登録
-        activePopovers.push({
-            element: container,
-            popover: popover
-        });
-
-        // コメント常時表示モードの場合は初期表示
-        if (isCommentsAlwaysVisible()) {
-            setTimeout(() => popover.show(), 0);
-        }
+        const elementKey = `${type}-${id}`;
+        
+        // DOMの準備を待ってからポップオーバーを初期化
+        setTimeout(() => {
+            const popover = new bootstrap.Popover(container, {
+                container: 'body',
+                placement: getPopoverPlacement(type),
+                trigger: 'click',
+                content: comment,
+                html: true,
+                offset: [0, 10],
+                template: `
+                    <div class="popover ${type}-popover" role="tooltip">
+                        <div class="popover-arrow"></div>
+                        <div class="popover-body"></div>
+                    </div>
+                `
+            });
+    
+            activePopovers.push({
+                element: container,
+                popover: popover
+            });
+    
+            // コメント常時表示モードの初期状態設定
+            if (isCommentsAlwaysVisible()) {
+                // 少し遅延を入れてポップオーバーを表示
+                setTimeout(() => {
+                    if (document.body.contains(container)) {
+                        try {
+                            popover.show();
+                        } catch (e) {
+                            console.log('Initial popover show error:', e);
+                        }
+                    }
+                }, 100);
+            }
+    
+            // クリックイベントの処理
+            container.addEventListener('click', () => {
+                try {
+                    popover.toggle();
+                } catch (e) {
+                    console.log('Popover toggle error:', e);
+                }
+            });
+        }, 0);
     }
 
     return container;
@@ -1067,13 +1081,13 @@ function positionPopover(element, x, y, type) {
 function getPopoverPlacement(type) {
     switch(type) {
         case 'click':
-            return 'bottom';
+            return 'right';
         case 'range':
             return 'right';
         case 'scene':
             return 'right';
         default:
-            return 'bottom';
+            return 'auto';
     }
 }
 
@@ -1124,8 +1138,20 @@ function clearCanvas() {
  * アノテーション表示をクリア
  */
 function clearAnnotations() {
-    // 既存のコメント表示を削除
-    document.querySelectorAll('.click-bubble, .permanent-comment').forEach(el => el.remove());
+    // 既存のポップオーバーをクリーンアップ
+    activePopovers.forEach(item => {
+        try {
+            if (item.popover) {
+                item.popover.dispose();
+            }
+            if (item.element && item.element.parentNode) {
+                item.element.remove();
+            }
+        } catch (e) {
+            console.log('Cleanup error:', e);
+        }
+    });
+    activePopovers = [];
 }
 
 //===========================================
@@ -1135,9 +1161,6 @@ function clearAnnotations() {
  * クリック座標のリプレイ描画d
  */
 function drawReplayClick(x, y, color, comment, clickData) {
-    // デバッグ用
-    console.log('Click data in drawReplayClick:', clickData);
-    
     if (!clickData || !clickData.id) {
         console.error('Invalid click data:', clickData);
         return;
@@ -1154,7 +1177,7 @@ function drawReplayClick(x, y, color, comment, clickData) {
  */
 function drawReplayRange(range, color, comment) {
     // 範囲の描画
-    ctx.fillStyle = color.replace('0.7', '0.2');  // 半透明
+    ctx.fillStyle = color.replace('0.7', '0.2');  // 透明度を下げる
     ctx.fillRect(range.start_x, range.start_y, range.width, range.height);
     
     // 範囲の枠線
@@ -1162,11 +1185,10 @@ function drawReplayRange(range, color, comment) {
     ctx.lineWidth = 2;
     ctx.strokeRect(range.start_x, range.start_y, range.width, range.height);
 
-    // 円・番号・コメントの描画：handleAnnotationComment（共通）で行う
-
+    // 番号を左上に配置
     handleAnnotationComment(
-        range.start_x + 20,  // 左から少し空ける
-        range.start_y + 20,  // 上から少し空ける
+        range.start_x,  // 左上のX座標
+        range.start_y,  // 左上のY座標
         range.id,
         comment,
         color,
@@ -1182,28 +1204,19 @@ function drawReplayRange(range, color, comment) {
  * シーン記録のリプレイ描画
  */
 function drawReplayScene(scene, color, comment, userId) {
-    const videoContainer = document.getElementById('video-container');
-    const containerWidth = videoContainer.offsetWidth;
+    console.log('Drawing scene:', { scene, color, comment, userId });
+    const canvas = document.getElementById('myCanvas');
     
-    // ユーザーの色インデックスを取得（0, 1, 2）
-    const colorIndex = userColorAssignments.get(userId);    // userColorAssignmentsから取得
-    
-    // 色インデックスに基づいて縦位置を決定
-    const baseY = 50;  // 最上部の位置
-    const ySpacing = 40;  // ユーザー間の間隔
-    const y = baseY + (colorIndex * ySpacing);  // ユーザーごとの固定位置
-    
-    // x座標は一定（動画の右側）
-    const x = containerWidth + 30;
+    // ユーザーの色に応じて縦位置を決定
+    const colorIndex = userColorAssignments.get(userId);
+    const baseY = canvas.height - 40;
+    const yOffset = 40;
+    const y = baseY - (colorIndex * yOffset);
+    const x = 30;
 
-    // 四角形の描画
-    ctx.beginPath();
-    ctx.rect(x - 15, y - 15, 30, 30);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    console.log('Scene position:', { x, y, colorIndex });
 
-    // 番号とコメントの描画
+    // 番号と円、コメントを配置
     handleAnnotationComment(
         x,
         y,
