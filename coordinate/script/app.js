@@ -43,18 +43,36 @@ class AnnotationStateManager {
      * アノテーションデータの初期化
      */
     initializeData(type, userId, data) {
+        console.log('InitializeData called with:', { type, userId, data }); // 入力データの確認
+        
         data.forEach(item => {
             const key = `${type}-${userId}-${item.id}`;
-            this.annotationStates.set(key, {
+            
+            if (type === 'range') {
+                console.log('Processing range item:', item); // 各範囲データの確認
+            }
+    
+            const stateData = {
                 id: item.id,
                 type: type,
                 userId: userId,
                 time: item.click_time,
                 isVisible: false,
-                x: item.x_coordinate || item.x,
-                y: item.y_coordinate || item.y,
                 comment: item.comment
-            });
+            };
+    
+            if (type === 'range') {
+                stateData.start_x = Number(item.start_x);
+                stateData.start_y = Number(item.start_y);
+                stateData.width = Number(item.width);
+                stateData.height = Number(item.height);
+            } else {
+                stateData.x = item.x_coordinate || item.x;
+                stateData.y = item.y_coordinate || item.y;
+            }
+    
+            console.log('Created state data:', stateData); // 作成したデータの確認
+            this.annotationStates.set(key, stateData);
         });
     }
 
@@ -140,6 +158,7 @@ class ReplayManager {
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Fetched range data:', data); // デバッグ用
                     if (data.status === 'success') {
                         this.stateManager.initializeData('range', userId, data.ranges);
                     }
@@ -252,14 +271,21 @@ class ReplayManager {
         if (!color) return null;
     
         if (annotation.type === 'range') {
+            console.log('Range data:', {    //デバッグ用
+                start_x: annotation.start_x,
+                start_y: annotation.start_y,
+                width: annotation.width,
+                height: annotation.height
+            });
+
             // 範囲選択の描画
             ctx.fillStyle = color.bg.replace('0.7', '0.2');
-            ctx.fillRect(annotation.x, annotation.y, annotation.width, annotation.height);
+            ctx.fillRect(annotation.start_x, annotation.start_y, annotation.width, annotation.height);
             
             // 範囲の枠線
             ctx.strokeStyle = color.bg.replace('0.7', '0.8');
             ctx.lineWidth = 2;
-            ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+            ctx.strokeRect(annotation.start_x, annotation.start_y, annotation.width, annotation.height);
         }
     
         // 番号表示用のコンテナ作成
@@ -287,7 +313,7 @@ class ReplayManager {
         // videoコンテナに追加
         const videoContainer = document.getElementById('video-container');
         videoContainer.appendChild(container);
-        
+
         return container;
     }
 
@@ -407,8 +433,8 @@ class ReplayManager {
                 container.style.top = `${annotation.y}px`;
                 break;
             case 'range':
-                container.style.left = `${annotation.x}px`;
-                container.style.top = `${annotation.y}px`;
+                container.style.left = `${annotation.start_x}px`;
+                container.style.top = `${annotation.start_y}px`;
                 break;
             case 'scene':
                 // シーン記録は画面下部に固定表示
