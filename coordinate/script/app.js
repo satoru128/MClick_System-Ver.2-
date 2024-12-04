@@ -244,35 +244,50 @@ class ReplayManager {
     }
 
     /**
-     * アノテーション要素の作成
+     * アノテーション要素の作成１
      */
     createAnnotationElement(annotation) {
+        // 最初にcolorを取得
+        const color = getUserColor(annotation.userId);
+        if (!color) return null;
+    
+        if (annotation.type === 'range') {
+            // 範囲選択の描画
+            ctx.fillStyle = color.bg.replace('0.7', '0.2');
+            ctx.fillRect(annotation.x, annotation.y, annotation.width, annotation.height);
+            
+            // 範囲の枠線
+            ctx.strokeStyle = color.bg.replace('0.7', '0.8');
+            ctx.lineWidth = 2;
+            ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+        }
+    
+        // 番号表示用のコンテナ作成
         const container = document.createElement('div');
         container.id = `annotation-${annotation.type}-${annotation.id}`;
         container.className = 'annotation-container';
-
+    
         // 形状要素の作成
         const shape = document.createElement('div');
         shape.className = annotation.type === 'scene' ? 'annotation-square' : 'annotation-circle';
-        const color = getUserColor(annotation.userId);
-        shape.style.backgroundColor = color ? color.bg : '#ccc';
-
+        shape.style.backgroundColor = color.bg;
+    
         // 番号要素の作成
         const number = document.createElement('div');
         number.className = 'annotation-number';
         number.textContent = annotation.id.toString();
-
+    
         // 要素の組み立て
         container.appendChild(shape);
         container.appendChild(number);
-
+    
         // 位置の設定
         this.updateAnnotationPosition(container, annotation);
-
+    
         // videoコンテナに追加
         const videoContainer = document.getElementById('video-container');
         videoContainer.appendChild(container);
-
+        
         return container;
     }
 
@@ -388,6 +403,9 @@ class ReplayManager {
     updateAnnotationPosition(container, annotation) {
         switch (annotation.type) {
             case 'click':
+                container.style.left = `${annotation.x}px`;
+                container.style.top = `${annotation.y}px`;
+                break;
             case 'range':
                 container.style.left = `${annotation.x}px`;
                 container.style.top = `${annotation.y}px`;
