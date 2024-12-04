@@ -233,6 +233,9 @@ class ReplayManager {
             document.querySelectorAll('.annotation-container')
         );
 
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         const visibleAnnotations = this.stateManager.getVisibleAnnotations();
         
         visibleAnnotations.forEach(annotation => {
@@ -240,19 +243,25 @@ class ReplayManager {
                 `annotation-${annotation.type}-${annotation.id}`
             );
 
+            // 範囲選択の描画は別メソッドに分離
+            if (annotation.type === 'range') {
+                this.drawRange(annotation);
+            }
+
             // 新規要素の作成
             if (!container) {
                 container = this.createAnnotationElement(annotation);
-                this.showComment(container, annotation);
+                const videoContainer = document.getElementById('video-container');
+                videoContainer.appendChild(container);
+                if (annotation.comment) {
+                    this.showComment(container, annotation);
+                }
             } else {
-                // 既存要素を表示維持リストから削除
                 currentElements.delete(container);
-                // コメント表示状態の更新
-                this.updateCommentVisibility(container, annotation);
             }
         });
 
-        // 不要になった要素を削除
+        // 不要な要素を削除
         currentElements.forEach(element => {
             const popover = bootstrap.Popover.getInstance(element);
             if (popover) {
@@ -263,56 +272,51 @@ class ReplayManager {
     }
 
     /**
+     * 範囲選択の描画処理
+     */
+    drawRange(range) {
+        const color = getUserColor(range.userId);
+        if (!color) return;
+
+        // 範囲の描画
+        ctx.fillStyle = color.bg.replace('0.7', '0.2');  
+        ctx.fillRect(range.start_x, range.start_y, range.width, range.height);
+        
+        // 範囲の枠線
+        ctx.strokeStyle = color.bg.replace('0.7', '0.8');
+        ctx.lineWidth = 2;
+        ctx.strokeRect(range.start_x, range.start_y, range.width, range.height);
+    }
+
+
+    /**
      * アノテーション要素の作成１
      */
     createAnnotationElement(annotation) {
-        // 最初にcolorを取得
         const color = getUserColor(annotation.userId);
         if (!color) return null;
-    
-        if (annotation.type === 'range') {
-            console.log('Range data:', {    //デバッグ用
-                start_x: annotation.start_x,
-                start_y: annotation.start_y,
-                width: annotation.width,
-                height: annotation.height
-            });
 
-            // 範囲選択の描画
-            ctx.fillStyle = color.bg.replace('0.7', '0.2');
-            ctx.fillRect(annotation.start_x, annotation.start_y, annotation.width, annotation.height);
-            
-            // 範囲の枠線
-            ctx.strokeStyle = color.bg.replace('0.7', '0.8');
-            ctx.lineWidth = 2;
-            ctx.strokeRect(annotation.start_x, annotation.start_y, annotation.width, annotation.height);
-        }
-    
         // 番号表示用のコンテナ作成
         const container = document.createElement('div');
         container.id = `annotation-${annotation.type}-${annotation.id}`;
         container.className = 'annotation-container';
-    
+
         // 形状要素の作成
         const shape = document.createElement('div');
         shape.className = annotation.type === 'scene' ? 'annotation-square' : 'annotation-circle';
         shape.style.backgroundColor = color.bg;
-    
+
         // 番号要素の作成
         const number = document.createElement('div');
         number.className = 'annotation-number';
         number.textContent = annotation.id.toString();
-    
+
         // 要素の組み立て
         container.appendChild(shape);
         container.appendChild(number);
-    
+
         // 位置の設定
         this.updateAnnotationPosition(container, annotation);
-    
-        // videoコンテナに追加
-        const videoContainer = document.getElementById('video-container');
-        videoContainer.appendChild(container);
 
         return container;
     }
