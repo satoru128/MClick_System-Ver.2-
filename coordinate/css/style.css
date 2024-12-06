@@ -72,12 +72,12 @@
     white-space: normal; /* 複数行表示を許可 */
 }
 
-/* エラー時のシェイクアニメーション */
+/* エラー時のシェイク */
 .error-shake {
     animation: shake 0.5s linear;
 }
 
-@keyframes shake {
+@keyframes shake {  /* シェイクアニメーション */
     0% { transform: translateX(0); }
     25% { transform: translateX(5px); }
     50% { transform: translateX(-5px); }

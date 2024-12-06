@@ -1512,22 +1512,6 @@ function createAnnotationContainer(type, id, color) {
 }
 
 //===========================================
-// 左クリックのリプレイ機能
-//===========================================
-
-
-//===========================================
-// 範囲選択の描画用
-//===========================================
-
-
-
-//===========================================
-// シーン記録のリプレイ機能
-//===========================================
-
-
-//===========================================
 // リプレイに表示するユーザーの選択用チェックボックス
 //===========================================
 /**
@@ -2388,31 +2372,35 @@ function handleExportClick() {
 //===========================================
 /**
  * 座標取得切り替え
- * @param {Event} event - チェックボックスの変更イベント
  */
 function handleToggleCoordinateChange(event) {
-    // リプレイモードがONの場合は切り替え禁止
+    // リプレイモードがONの場合は切り替えできない
     if (event.target.checked && isReplayEnabled) {
         event.target.checked = false;
-        showModeError('切り替え', 'リプレイモードをオフにする必要があります');
+        showModeError('モード切り替え', 'リプレイモードを先にオフにしてください', event.target);
         return;
     }
 
     player.pauseVideo();
-    // モードの切り替え
     isCoordinateEnabled = event.target.checked;
     console.log('座標取得モード: ' + (isCoordinateEnabled ? 'ON' : 'OFF'));
 }
 
 /**
 * リプレイ切り替えボタン
-* @param {Event} event - チェックボックスの変更イベント
 */
 function handleReplayChange(event) {
-    // 座標取得モードがONの場合は切り替え禁止
+    // 座標取得モードがONの場合は切り替えできない
     if (event.target.checked && isCoordinateEnabled) {
         event.target.checked = false;
-        showModeError('切り替え', '座標取得モードをオフにする必要があります');
+        showModeError('モード切り替え', '座標取得モードを先にオフにしてください', event.target);
+        return;
+    }
+
+    // ユーザーが選択されていない場合はオンにできない
+    if (event.target.checked && selectedUsers.size === 0) {
+        event.target.checked = false;
+        showModeError('リプレイ', 'ユーザーを選択してください', event.target);
         return;
     }
 
@@ -2421,14 +2409,19 @@ function handleReplayChange(event) {
     replayManager.isReplayActive = isReplayEnabled;
 
     if (isReplayEnabled) {
-        // 初期化実行
         replayManager.initializeReplay();
     } else {
-        // リプレイの停止処理
         clearCanvas();
         clearAnnotations();
         replayManager.stateManager = new AnnotationStateManager();
     }
+}
+
+/**
+ * モード管理の状態チェック関数
+ */
+function canEnableReplayMode() {
+    return selectedUsers.size > 0;
 }
 
 //===========================================
@@ -2438,8 +2431,9 @@ function handleReplayChange(event) {
  * モード切り替えエラーの表示
  * @param {string} mode - エラーが発生したタイトル名
  * @param {string} message - エラーメッセージ
+ * @param {HTMLElement} element - シェイクさせる要素
  */
-function showModeError(mode, message) {
+function showModeError(mode, message, element) {
     // Toast要素を作成
     const errorToast = document.createElement('div');
     // クラス「toast」を追加
@@ -2467,14 +2461,12 @@ function showModeError(mode, message) {
         errorToast.remove();
     }, 4000);
 
-    // チェックボックスをシェイク
-    const checkbox = mode === '座標取得' ? 
-        document.getElementById('toggleCoordinateBtn') : 
-        document.getElementById('replayBtn');
-    
-    checkbox.classList.add('error-shake');
-    setTimeout(() => {
-        checkbox.classList.remove('error-shake');
-    }, 500);
+    // 指定された要素にシェイクアニメーションを適用
+    if (element) {
+        element.classList.add('error-shake');
+        setTimeout(() => {
+            element.classList.remove('error-shake');
+        }, 500);
+    }
 }
 
