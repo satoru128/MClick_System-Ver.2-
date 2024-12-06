@@ -279,7 +279,7 @@ class ReplayManager {
      * 範囲選択の描画処理
      */
     drawRange(range) {
-        const color = getUserColor(range.userId);
+        const color = this.getUserColor(range.userId);
         if (!color) return;
 
         // 範囲の描画
@@ -292,12 +292,11 @@ class ReplayManager {
         ctx.strokeRect(range.start_x, range.start_y, range.width, range.height);
     }
 
-
     /**
-     * アノテーション要素の作成１
+     * アノテーション要素の作成
      */
     createAnnotationElement(annotation) {
-        const color = getUserColor(annotation.userId);
+        const color = this.getUserColor(annotation.userId);
         if (!color) return null;
 
         // 番号表示用のコンテナ作成
@@ -323,6 +322,19 @@ class ReplayManager {
         this.updateAnnotationPosition(container, annotation);
 
         return container;
+    }
+
+    /**
+     * ユーザーIDに対応する色情報を取得
+     * @param {string} userId - ユーザーID
+     * @returns {Object|null} 色情報（bgとtextプロパティを持つ）
+     */
+    getUserColor(userId) {
+        const colorIndex = userColorAssignments.get(userId);
+        if (colorIndex !== undefined) {
+            return USER_COLORS[colorIndex];
+        }
+        return null;
     }
 
     /**
@@ -455,6 +467,43 @@ class ReplayManager {
                 break;
         }
     }
+
+    /**
+     * リプレイの停止処理
+     */
+    stopReplay() {
+        // キャンバスのクリア
+        this.clearCanvas();
+
+        // インターバルの停止
+        if (this.monitoringId) {
+            clearInterval(this.monitoringId);
+            this.monitoringId = null;
+        }
+
+        // データのリセット
+        this.replayClickData = {};
+        this.isReplayActive = false;
+
+        // UIの更新
+        document.getElementById('replayBtn').checked = false;
+    }
+
+    /**
+     * リプレイモードの終了処理
+     */
+    finishReplay() {
+        this.clearCanvas();
+        this.clearAnnotations();
+        this.stateManager = new AnnotationStateManager();
+    }
+
+    /**
+     * キャンバスのクリア
+     */
+    clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
 const replayManager = new ReplayManager();  // リプレイデータの管理
@@ -535,7 +584,6 @@ function onPlayerReady(event) {
     initializeCanvas();     // キャンバスの初期化
     initializeControls();   // コントロールの初期化
     initializeUserSelect(); // ユーザー選択機能の初期化
-    initializeReplaySettings(); // リプレイ表示選択の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
 }
@@ -1150,309 +1198,6 @@ function endSelection(e) {
 // リプレイ機能（共通表示）
 //===========================================
 /**
- * リプレイの初期化
- */
-function initializeReplay() {
-    // 選択されているユーザーが0の場合
-    if (selectedUsers.size === 0) {
-        ErrorManager.showError(
-            ErrorManager.ErrorTypes.REPLAY,
-            ErrorManager.Messages.NO_USER_SELECTED
-        );
-        stopReplay();
-        return;
-    }
-
-    // 動画を停止して最初に巻き戻す
-    player.seekTo(0);
-    clearCanvas();
-    popoverStates.clear();  // ポップオーバーの表示状態をリセット
-
-    // 選択されたユーザーのクリックデータ取得
-    Promise.all([
-        // クリックデータ
-        ...Array.from(selectedUsers).map(userId => 
-            fetch('./coordinate/php/get_click_data.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    video_id: videoId,
-                    user_id: userId
-                })
-            })
-            .then(response => response.json())
-            .then(data => ({
-                type: 'click',
-                userId: userId,
-                data: data.status === 'success' ? data.clicks : []
-            }))
-        ),
-        // 範囲選択データ取得
-        ...Array.from(selectedUsers).map(userId => 
-            fetch('./coordinate/php/get_range_data.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    video_id: videoId,
-                    user_id: userId
-                })
-            })
-            .then(response => response.json())
-            .then(data => ({
-                type: 'range',
-                userId: userId,
-                data: data.status === 'success' ? data.ranges : []
-            }))
-        ),
-        // シーン記録データ取得
-        ...Array.from(selectedUsers).map(userId => 
-            fetch('./coordinate/php/get_scene_data.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    video_id: videoId,
-                    user_id: userId
-                })
-            })
-            .then(response => response.json())
-            .then(data => ({
-                type: 'scene',
-                userId: userId,
-                data: data.status === 'success' ? data.scenes : []
-            }))
-        )
-    ])
-    .then(results => {
-        // データ整理
-        replayClickData = {};
-        replayRangeData = {};
-        replaySceneData = {};
-
-        results.forEach(result => {
-            if (result.data.length > 0) {
-                switch(result.type) {
-                    case 'click':
-                        replayClickData[result.userId] = result.data;
-                        break;
-                    case 'range':
-                        replayRangeData[result.userId] = result.data;
-                        break;
-                    case 'scene':
-                        replaySceneData[result.userId] = result.data;
-                        break;
-                }
-            }
-        });
-
-        // リプレイ開始
-        startReplayMonitoring();
-        player.pauseVideo();
-    })
-    .catch(error => {
-        console.error('リプレイデータの取得に失敗:', error);
-        ErrorManager.showError(
-            ErrorManager.ErrorTypes.ERROR,
-            ErrorManager.Messages.FETCH_DATA_ERROR
-        );
-        stopReplay();
-    });
-}
-
-/**
- * リプレイ時の監視開始（200msごとに更新）
- */
-function startReplayMonitoring() {
-    // 既存のモニタリングがあれば停止
-    if (replayIntervalId) {
-        clearInterval(replayIntervalId);
-    }
-    
-    // 新しいモニタリングを開始
-    replayIntervalId = setInterval(() => {
-        if (!isReplayEnabled) {
-            clearInterval(replayIntervalId);
-            return;
-        }
-        
-        // 動画が一時停止中は更新しない
-        if (player && player.getPlayerState() === YT.PlayerState.PAUSED) {
-            return;
-        }
-        
-        const currentTime = player.getCurrentTime();
-        updateReplayDisplay(currentTime);
-    }, 200);
-}
-
-/**
- * リプレイ要素のクリーンアップ
- */
-function clearReplayElements() {
-    // 現在表示中のアノテーションコンテナを取得
-    const currentContainers = new Set(
-        document.querySelectorAll('.annotation-container')
-    );
-
-    // アクティブなポップオーバーをチェック
-    activePopovers = activePopovers.filter(item => {
-        // 要素が存在しない、またはポップオーバーが不要になった場合
-        if (!document.body.contains(item.element) || 
-            !currentContainers.has(item.element)) {
-            if (item.popover && document.body.contains(item.element)) {
-                try {
-                    item.popover.dispose();
-                } catch (error) {
-                    console.warn('Popover cleanup error:', error);
-                }
-            }
-            return false;
-        }
-        return true;
-    });
-
-    // 表示中のポップオーバーがないコンテナを削除
-    currentContainers.forEach(container => {
-        if (!container.classList.contains('popover-shown')) {
-            if (document.body.contains(container)) {
-                container.remove();
-            }
-        }
-    });
-}
-
-
-/**
- * コメント表示（共通）
- */
-function handleAnnotationComment(x, y, id, comment, color, type) {
-    const elementId = `annotation-${type}-${id}`;
-    
-    // 既存要素のクリーンアップ
-    const existingElement = document.getElementById(elementId);
-    if (existingElement) {
-        const existingPopover = bootstrap.Popover.getInstance(existingElement);
-        if (existingPopover) {
-            existingPopover.dispose();
-        }
-        existingElement.remove();
-    }
-
-    // コンテナの作成
-    const container = document.createElement('div');
-    container.id = elementId;
-    container.className = 'annotation-container';
-
-    // 形状要素の作成
-    const shape = document.createElement('div');
-    shape.className = type === 'scene' ? 'annotation-square' : 'annotation-circle';
-    shape.style.backgroundColor = color;
-
-    // 番号要素の作成
-    const number = document.createElement('div');
-    number.className = 'annotation-number';
-    number.textContent = id.toString();
-
-    // 要素の組み立て
-    container.appendChild(shape);
-    container.appendChild(number);
-
-    // videoコンテナに追加してから位置設定
-    const videoContainer = document.getElementById('video-container');
-    videoContainer.appendChild(container);
-
-    // 位置設定
-    container.style.left = `${x}px`;
-    container.style.top = `${y}px`;
-
-    // コメントがある場合のポップオーバー設定
-    if (comment) {
-        // 要素が完全にDOMに追加されてから初期化
-        requestAnimationFrame(() => {
-            try {
-                const popover = new bootstrap.Popover(container, {
-                    container: 'body',
-                    placement: 'right',
-                    trigger: 'manual',
-                    content: comment
-                });
-
-                // アクティブなポップオーバーとして記録
-                activePopovers.push({
-                    element: container,
-                    popover: popover
-                });
-
-                // クリックイベントの設定
-                container.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const isShown = container.classList.contains('popover-shown');
-                    
-                    try {
-                        if (isShown) {
-                            popover.hide();
-                            container.classList.remove('popover-shown');
-                        } else {
-                            popover.show();
-                            container.classList.add('popover-shown');
-                        }
-                    } catch (error) {
-                        console.warn('Popover toggle error:', error);
-                    }
-                });
-
-                // コメント常時表示モードの場合
-                if (isCommentsAlwaysVisible()) {
-                    setTimeout(() => {
-                        if (document.body.contains(container)) {
-                            try {
-                                popover.show();
-                                container.classList.add('popover-shown');
-                            } catch (error) {
-                                console.warn('Initial popover show error:', error);
-                            }
-                        }
-                    }, 100);
-                }
-            } catch (error) {
-                console.warn('Popover initialization error:', error);
-            }
-        });
-    }
-
-    return container;
-}
-
-/**
- * タイプに応じたポップオーバーのオフセットを取得
- */
-function getPopoverOffset(type) {
-    switch(type) {
-        case 'click':
-            return [0, 15];  // 上下0px, 左右15px
-        case 'range':
-            return [0, 15];  // 上下0px, 左右15px
-        case 'scene':
-            return [-5, 20]; // 上に5px, 右に20px
-        default:
-            return [0, 15];
-    }
-}
-
-
-/**
- * ユーザーIDに対応する色情報を取得
- * @param {string} userId - ユーザーID
- * @returns {Object|null} 色情報（bgとtextプロパティを持つ）
- */
-function getUserColor(userId) {
-    const colorIndex = userColorAssignments.get(userId);
-    if (colorIndex !== undefined) {
-        return USER_COLORS[colorIndex];
-    }
-    return null;
-}
-
-/**
  * コメントの常時表示が有効かどうかを判定（共通）
  */
 function isCommentsAlwaysVisible() {
@@ -1460,70 +1205,6 @@ function isCommentsAlwaysVisible() {
     return checkbox && checkbox.checked;
 }
 
-/**
- * リプレイの停止
- */
-function stopReplay() {
-    clearCanvas();
-    if (replayIntervalId) {
-        clearInterval(replayIntervalId);
-        replayIntervalId = null;
-    }
-    replayClickData = {};
-    isReplayEnabled = false;
-    document.getElementById('replayBtn').checked = false;
-}
-
-/**
- * キャンバスをクリア
- */
-function clearCanvas() {
-    const canvas = document.getElementById('myCanvas');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * リプレイ要素のクリーンアップ
- */
-function clearAnnotations() {
-    document.querySelectorAll('.annotation-container').forEach(container => {
-        const popover = bootstrap.Popover.getInstance(container);
-        if (popover) {
-            try {
-                popover.dispose();
-            } catch (error) {
-                console.warn('Popover cleanup error:', error);
-            }
-        }
-        container.remove();
-    });
-}
-
-/**
- * アノテーション表示用のコンテナ作成（共通処理）
- */
-function createAnnotationContainer(type, id, color) {
-    const container = document.createElement('div');
-    container.className = 'annotation-container';
-    container.id = `annotation-${type}-${id}`;
-
-    const shape = document.createElement('div');
-    shape.className = type === 'scene' ? 'annotation-square' : 'annotation-circle';
-    shape.style.backgroundColor = color;
-
-    const number = document.createElement('div');
-    number.className = 'annotation-number';
-    number.textContent = id.toString();
-
-    container.appendChild(shape);
-    container.appendChild(number);
-
-    return container;
-}
-
-//===========================================
-// リプレイに表示するユーザーの選択用チェックボックス
-//===========================================
 /**
  * ユーザー選択のチェックボックス変更時の処理
  */
@@ -1568,7 +1249,7 @@ function handleUserCheckboxChange(e) {
 }
 
 //===========================================
-// テーブルに表示するユーザーの選択用ドロップダウン
+// テーブルに表示するユーザーの選択用処理
 //===========================================
 /**
  * ユーザー選択機能の初期化
@@ -1770,42 +1451,6 @@ function updateSelectedUsersDisplay() {
         .join(', ');
     
     displayElement.innerHTML = `選択中: ${selectedInfo}`;
-}
-
-//===========================================
-// リプレイするアノテーションの種類選択用ドロップダウン
-//===========================================
-/**
- * リプレイ表示設定の初期化
- */
-function initializeReplaySettings() {
-    // チェックボックスの状態変更時の処理
-    ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function() {
-            // リプレイ中であれば表示を更新
-            if (isReplayEnabled) {
-                clearCanvas();
-                const currentTime = player.getCurrentTime();
-                updateReplayDisplay(currentTime);
-            }
-        });
-    });
-}
-
-/**
- * コメント表示チェックボックスのハンドラ
- */
-function handleCommentsVisibilityChange(event) {
-    const isVisible = event.target.checked;
-    const visibleAnnotations = replayManager.stateManager.getVisibleAnnotations();
-    
-    visibleAnnotations.forEach(annotation => {
-        const key = `${annotation.type}-${annotation.userId}-${annotation.id}`;
-        replayManager.stateManager.toggleComment(key, isVisible);
-    });
-
-    // 表示の更新
-    replayManager.render();
 }
 
 //===========================================
@@ -2148,7 +1793,6 @@ function handleMistakeClick() {
     });
 }
 
-
 //===========================================
 // クリックカウント
 //===========================================
@@ -2466,9 +2110,7 @@ function handleReplayChange(event) {
     if (isReplayEnabled) {
         replayManager.initializeReplay();
     } else {
-        clearCanvas();
-        clearAnnotations();
-        replayManager.stateManager = new AnnotationStateManager();
+        replayManager.finishReplay();
     }
 }
 
