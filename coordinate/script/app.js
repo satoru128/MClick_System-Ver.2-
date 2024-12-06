@@ -128,8 +128,12 @@ class ReplayManager {
      * リプレイの初期化
      */
     initializeReplay() {
+        // ユーザーが選択されていない場合のエラーメッセージ
         if (selectedUsers.size === 0) {
-            showModeError('リプレイ', 'ユーザーを選択してください');
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.REPLAY, 
+                ErrorManager.Messages.NO_USER_SELECTED
+            );
             return false;
         }
 
@@ -1151,7 +1155,10 @@ function endSelection(e) {
 function initializeReplay() {
     // 選択されているユーザーが0の場合
     if (selectedUsers.size === 0) {
-        showModeError('リプレイ', 'ユーザーを選択してください');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.REPLAY,
+            ErrorManager.Messages.NO_USER_SELECTED
+        );
         stopReplay();
         return;
     }
@@ -1243,7 +1250,10 @@ function initializeReplay() {
     })
     .catch(error => {
         console.error('リプレイデータの取得に失敗:', error);
-        showModeError('エラー', 'データの取得に失敗しました');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.ERROR,
+            ErrorManager.Messages.FETCH_DATA_ERROR
+        );
         stopReplay();
     });
 }
@@ -1523,7 +1533,11 @@ function handleUserCheckboxChange(e) {
         if (selectedUsers.size >= 3) {
             e.preventDefault();
             e.target.checked = false;
-            showModeError('制限', '最大3名まで選択可能です');
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.LIMIT,
+                ErrorManager.Messages.MAX_USERS_LIMIT,
+                e.target
+            );
             return;
         }
         
@@ -1594,7 +1608,10 @@ function fetchUserList() {
         })
         .catch(error => {
             console.error('ユーザー一覧の取得失敗:', error);
-            showModeError('エラー', 'ユーザー一覧の取得に失敗しました');
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.ERROR,
+                ErrorManager.Messages.USER_LIST_ERROR
+            );
         });
 }
 
@@ -1644,7 +1661,11 @@ function renderUserSelect() {
                 if (selectedUsers.size >= 3) {
                     e.preventDefault();
                     e.target.checked = false;
-                    showModeError('制限', '最大3名まで選択可能です');
+                    ErrorManager.showError(
+                        ErrorManager.ErrorTypes.LIMIT,
+                        ErrorManager.Messages.MAX_USERS_LIMIT,
+                        e.target
+                    );
                     return;
                 }
                 
@@ -1681,9 +1702,13 @@ function renderUserSelect() {
 function handleUserSelectionChange(event) {
     if (event.target.checked) {
         if (selectedUsers.size >= 3) {
-            event.preventDefault();
-            event.target.checked = false;
-            showModeError('制限', '最大3名まで選択可能です');
+            e.preventDefault();
+            e.target.checked = false;
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.LIMIT,
+                ErrorManager.Messages.MAX_USERS_LIMIT,
+                e.target
+            );
             return;
         }
         
@@ -2065,13 +2090,19 @@ function displaySceneData(scenes) {
 function handleMistakeClick() {
     // 座標取得ボタンOFF時の処理
     if (!isCoordinateEnabled) {
-        showModeError('通知', '座標取得モードをオンにしてください');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.NOTIFICATION,
+            ErrorManager.Messages.ENABLE_COORDINATE_MODE
+        );
         return;
     }
 
     // リプレイモード中は操作不可
     if (isReplayEnabled) {
-        showModeError('通知', 'リプレイ中は取り消せません');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.NOTIFICATION,
+            ErrorManager.Messages.NO_OPERATION_IN_REPLAY
+        );
         return;
     }
 
@@ -2089,24 +2120,31 @@ function handleMistakeClick() {
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
-            showModeError('取消', '最後のクリックを取り消しました');
-            
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.CANCEL,
+                ErrorManager.Messages.LAST_CLICK_DELETED
+            );
             fetchClickCoordinates();
             const currentTime = player.getCurrentTime();
             player.seekTo(Math.max(currentTime - 1, 0), true);
-        }else if (result.status === 'no_data') {
-            // クリックデータがない場合
-            showModeError('通知', 'クリックデータがありません');
+        } else if (result.status === 'no_data') {
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.NOTIFICATION,
+                ErrorManager.Messages.NO_CLICK_DATA
+            );
         } else {
-            showModeError('エラー', '削除に失敗しました');
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.ERROR,
+                ErrorManager.Messages.DELETE_ERROR
+            );
         }
     })
     .catch(error => {
         console.error('削除エラー:', error);
-        showModeError('エラー', '削除に失敗しました');
-    })
-    .finally(() => {
-        mistakeBtn.disabled = false;
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.ERROR,
+            ErrorManager.Messages.DELETE_ERROR
+        );
     });
 }
 
@@ -2354,16 +2392,21 @@ function handleExportClick() {
         .then(response => response.text())
         .then(data => {
             if (data.trim() === "success") {
-                showModeError('成功', 'データがエクスポートされました');
+                ErrorManager.showError(
+                    ErrorManager.ErrorTypes.SUCCESS,
+                    ErrorManager.Messages.EXPORT_SUCCESS
+                );
             } else if (data.trim() === "no data") {
-                showModeError('通知', 'エクスポートするデータがありません');
+                ErrorManager.showError(
+                    ErrorManager.ErrorTypes.NOTIFICATION,
+                    ErrorManager.Messages.NO_EXPORT_DATA
+                );
             } else {
-                showModeError('座標取得', 'エクスポートに失敗しました');
+                ErrorManager.showError(
+                    ErrorManager.ErrorTypes.ERROR,
+                    ErrorManager.Messages.EXPORT_ERROR
+                );
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('エクスポートに失敗しました');
         });
 }
 
@@ -2377,7 +2420,11 @@ function handleToggleCoordinateChange(event) {
     // リプレイモードがONの場合は切り替えできない
     if (event.target.checked && isReplayEnabled) {
         event.target.checked = false;
-        showModeError('モード切り替え', 'リプレイモードを先にオフにしてください', event.target);
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.MODE_SWITCH,
+            ErrorManager.Messages.REPLAY_MODE_OFF,
+            event.target
+        );
         return;
     }
 
@@ -2393,14 +2440,22 @@ function handleReplayChange(event) {
     // 座標取得モードがONの場合は切り替えできない
     if (event.target.checked && isCoordinateEnabled) {
         event.target.checked = false;
-        showModeError('モード切り替え', '座標取得モードを先にオフにしてください', event.target);
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.MODE_SWITCH,
+            ErrorManager.Messages.COORDINATE_MODE_OFF,
+            event.target
+        );
         return;
     }
-
+    
     // ユーザーが選択されていない場合はオンにできない
     if (event.target.checked && selectedUsers.size === 0) {
         event.target.checked = false;
-        showModeError('リプレイ', 'ユーザーを選択してください', event.target);
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.REPLAY,
+            ErrorManager.Messages.NO_USER_SELECTED,
+            event.target
+        );
         return;
     }
 
@@ -2423,50 +2478,3 @@ function handleReplayChange(event) {
 function canEnableReplayMode() {
     return selectedUsers.size > 0;
 }
-
-//===========================================
-// エラー表示処理
-//===========================================
-/**
- * モード切り替えエラーの表示
- * @param {string} mode - エラーが発生したタイトル名
- * @param {string} message - エラーメッセージ
- * @param {HTMLElement} element - シェイクさせる要素
- */
-function showModeError(mode, message, element) {
-    // Toast要素を作成
-    const errorToast = document.createElement('div');
-    // クラス「toast」を追加
-    errorToast.className = 'toast align-items-center bg-danger text-white border-0';
-    errorToast.setAttribute('role', 'alert');
-    errorToast.setAttribute('aria-live', 'assertive');
-    errorToast.setAttribute('aria-atomic', 'true');
-    
-    errorToast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <strong>${mode}</strong><br>
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    document.body.appendChild(errorToast);
-    const toast = new bootstrap.Toast(errorToast);
-    toast.show();
-
-    // 4秒後に自動で削除
-    setTimeout(() => {
-        errorToast.remove();
-    }, 4000);
-
-    // 指定された要素にシェイクアニメーションを適用
-    if (element) {
-        element.classList.add('error-shake');
-        setTimeout(() => {
-            element.classList.remove('error-shake');
-        }, 500);
-    }
-}
-
