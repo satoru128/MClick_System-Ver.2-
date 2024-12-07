@@ -769,6 +769,24 @@ function handleUserCheckboxChange(e) {
 }
 
 //===========================================
+// リプレイするアノテーションの種類選択用ドロップダウン
+//===========================================
+/**
+ * リプレイ表示設定の初期化（replay.jsに移動）
+ */
+function initializeReplaySettings() {
+    // チェックボックスの状態変更時の処理
+    ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
+        document.getElementById(id).addEventListener('change', function(e) {
+            if (replayManager && replayManager.isReplayActive) {
+                replayManager.updateAnnotationVisibility(id, e.target.checked);
+            }
+        });
+    });
+}
+
+
+//===========================================
 // テーブルに表示するユーザーの選択用処理
 //===========================================
 /**

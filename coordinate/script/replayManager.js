@@ -124,29 +124,51 @@ class ReplayManager {
         // キャンバスをクリア
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const visibleAnnotations = this.stateManager.getVisibleAnnotations();
+        const displaySettings = this.getDisplaySettings();
+        const visibleAnnotations = this.stateManager.getVisibleAnnotations();  
         
-        visibleAnnotations.forEach(annotation => {
-            let container = document.getElementById(
-                `annotation-${annotation.type}-${annotation.id}`
-            );
-
-            // 範囲選択の描画は別メソッドに分離
-            if (annotation.type === 'range') {
-                this.drawRange(annotation);
-            }
-
-            // 新規要素の作成
-            if (!container) {
-                container = this.createAnnotationElement(annotation);
-                const videoContainer = document.getElementById('video-container');
-                videoContainer.appendChild(container);
-                if (annotation.comment) {
-                    this.showComment(container, annotation);
+        visibleAnnotations
+            .filter(annotation => {
+                // 表示設定に基づくフィルタリング
+                switch(annotation.type) {
+                    case 'click':
+                        return displaySettings.showClicks;
+                    case 'range':
+                        return displaySettings.showRanges;
+                    case 'scene':
+                        return displaySettings.showScenes;
+                    default:
+                        return true;
                 }
-            } else {
-                currentElements.delete(container);
+            })
+            .forEach(annotation => {
+                let container = document.getElementById(
+                    `annotation-${annotation.type}-${annotation.id}`
+                );
+
+                if (annotation.type === 'range') {
+                    this.drawRange(annotation);
+                }
+
+                if (!container) {
+                    container = this.createAnnotationElement(annotation);
+                    const videoContainer = document.getElementById('video-container');
+                    videoContainer.appendChild(container);
+                    if (annotation.comment) {
+                        this.showComment(container, annotation);
+                    }
+                } else {
+                    currentElements.delete(container);
+                }
+            });
+
+        // 不要な要素を削除
+        currentElements.forEach(element => {
+            const popover = bootstrap.Popover.getInstance(element);
+            if (popover) {
+                popover.dispose();
             }
+            element.remove();
         });
 
         // 不要な要素を削除
@@ -157,6 +179,17 @@ class ReplayManager {
             }
             element.remove();
         });
+    }
+
+    /**
+     * 表示するアノテーションチェックボックスの取得
+     */
+    getDisplaySettings() {
+        return {
+            showClicks: document.getElementById('showClicks').checked,
+            showRanges: document.getElementById('showRanges').checked,
+            showScenes: document.getElementById('showScenes').checked
+        };
     }
 
     /**
@@ -387,6 +420,22 @@ class ReplayManager {
      */
     clearCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    /**
+     * リプレイ表示設定を更新
+     */
+    updateAnnotationVisibility(type, isVisible) {
+        const settingMap = {
+            'showClicks': 'showClicks',
+            'showRanges': 'showRanges',
+            'showScenes': 'showScenes'
+        };
+
+        if (type in settingMap) {
+            this.stateManager.updateDisplaySettings(settingMap[type], isVisible);
+            this.render(); // 表示を更新
+        }
     }
 }
 

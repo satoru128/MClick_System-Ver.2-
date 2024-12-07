@@ -6,6 +6,15 @@ class AnnotationStateManager {
         this.annotationStates = new Map();  // アノテーションの表示状態
         this.commentStates = new Map();     // コメントの表示状態
         this.activePopovers = [];           // アクティブなポップオーバー
+        this.annotationStates = new Map();  // アノテーションの表示状態
+        this.commentStates = new Map();     // コメントの表示状態
+        
+        // 表示設定の追加
+        this.displaySettings = {    
+            showClicks: true,   
+            showRanges: true,
+            showScenes: true
+        };
     }
 
     /**
@@ -70,11 +79,35 @@ class AnnotationStateManager {
     }
 
     /**
+     * リプレイに表示するアノテーションの表示設定を更新
+     */ 
+    updateDisplaySettings(type, isVisible) {
+        if (type in this.displaySettings) {
+            this.displaySettings[type] = isVisible;
+        }
+    }
+
+    /**
      * 表示すべきアノテーションの取得
      */
     getVisibleAnnotations() {
         return Array.from(this.annotationStates.entries())
-            .filter(([_, state]) => state.isVisible)
+            .filter(([key, state]) => {
+                // 時間による表示判定
+                if (!state.isVisible) return false;
+                
+                // タイプによる表示判定
+                switch (state.type) {
+                    case 'click':
+                        return this.displaySettings.showClicks;
+                    case 'range':
+                        return this.displaySettings.showRanges;
+                    case 'scene':
+                        return this.displaySettings.showScenes;
+                    default:
+                        return true;
+                }
+            })
             .map(([key, state]) => ({
                 key,
                 ...state,
