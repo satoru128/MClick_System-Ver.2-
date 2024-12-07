@@ -14,6 +14,8 @@
         <script src="https://www.youtube.com/iframe_api"></script>
         <!-- カスタムスクリプト -->
         <script src="./coordinate/script/errorManager.js"></script>
+        <script src="./coordinate/script/annotationManager.js"></script>
+        <script src="./coordinate/script/replayManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
