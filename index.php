@@ -82,6 +82,11 @@
                                 <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
                                 <input type="range" class="form-range" id="seekBar" value="0" max="100">
                             </div>
+                            <!--再生速度-->
+                            <div>
+                                <label for="speedSlider" class="form-label">再生速度：<span id="currentSpeed">1.0</span>x</label>
+                                <input type="range" class="form-range" id="speedSlider" min="0.25" max="2" step="0.25" value="1">
+                            </div>
                         </div>
                     </div>
                 </div>

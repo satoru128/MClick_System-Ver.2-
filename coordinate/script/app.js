@@ -106,6 +106,7 @@ function onPlayerReady(event) {
     initializeUserSelect(); // ユーザー選択機能の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
+    initializeSpeedControl();   // 再生速度コントロールの初期化
 }
 
 function onPlayerStateChange(event) {
@@ -1657,4 +1658,26 @@ function handleReplayChange(event) {
  */
 function canEnableReplayMode() {
     return selectedUsers.size > 0;
+}
+
+/**
+ * 再生速度制御の初期化
+ */
+function initializeSpeedControl() {
+    const speedSlider = document.getElementById('speedSlider');
+    const currentSpeedDisplay = document.getElementById('currentSpeed');
+
+    // スライダーの値が変更されたときの処理
+    speedSlider.addEventListener('input', function(e) {
+        const speed = parseFloat(this.value);
+        currentSpeedDisplay.textContent = speed.toFixed(2);
+    });
+
+    // スライダーの操作が完了したときの処理
+    speedSlider.addEventListener('change', function(e) {
+        const speed = parseFloat(this.value);
+        if (player) {
+            player.setPlaybackRate(speed);
+        }
+    });
 }
