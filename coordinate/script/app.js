@@ -15,6 +15,7 @@ let allUsers = []; // 全ユーザーのリストを保持
 let tempSelectionData = null;  // 一時的な選択データを保持
 let popoverStates = new Map();  // ポップオーバーの表示状態を記憶
 let activePopovers = [];     // アクティブなポップオーバーを管理
+let feedbackManager;         // フィードバック機能の管理クラス
 
 // クリック座標表示用の色の定義
 const USER_COLORS = [
@@ -107,6 +108,7 @@ function onPlayerReady(event) {
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
     initializeSpeedControl();   // 再生速度コントロールの初期化
+    feedbackManager = new FeedbackManager();  // フィードバック機能の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -158,6 +160,12 @@ function initializeControls() {
     setupPlaybackControls();    // 再生関連のコントロール設定
     setupAnnotationControls();  // アノテーション関連のコントロール設定
     setInterval(updateDisplayTime, 1000);  // 1秒ごとに時間表示を更新
+
+    // フィードバックボタンのイベントリスナーを設定
+    const feedbackBtn = document.getElementById('feedbackBtn');
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', handleFeedbackClick);
+    }
 }
 
 /**
@@ -765,6 +773,9 @@ function handleUserCheckboxChange(e) {
     fetchClickCoordinates();
     fetchRangeData();
     fetchSceneData();
+    if (feedbackManager) {
+        feedbackManager.getFeedbacks();
+    }
     
     updateSelectedUsersDisplay();
 }
@@ -1108,6 +1119,9 @@ function initializeTabsAndData() {
                     break;
                 case '#scenes-tab':
                     fetchSceneData();
+                    break;
+                case '#feedback-tab':
+                    fetchFeedbackData();
                     break;
             }
         });
@@ -1648,8 +1662,15 @@ function handleReplayChange(event) {
 
     if (isReplayEnabled) {
         replayManager.initializeReplay();
+        // リプレイモード開始時にフィードバックデータを取得
+        fetchFeedbackData();
     } else {
         replayManager.finishReplay();
+        // リプレイモード終了時にメッセージを表示
+        const container = document.getElementById('feedback-data');
+        if (container) {
+            container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
+        }
     }
 }
 
@@ -1660,6 +1681,9 @@ function canEnableReplayMode() {
     return selectedUsers.size > 0;
 }
 
+//===========================================
+// 再生速度制御
+//===========================================
 /**
  * 再生速度制御の初期化
  */
@@ -1679,5 +1703,157 @@ function initializeSpeedControl() {
         if (player) {
             player.setPlaybackRate(speed);
         }
+    });
+}
+
+//===========================================
+// フィードバック機能
+//===========================================
+/**
+ * フィードバックボタンのクリックハンドラ
+ */
+function handleFeedbackClick() {
+    if (player) {
+        // 動画を一時停止
+        player.pauseVideo();
+        
+        // 発言者選択の更新
+        updateSpeakerCheckboxes();
+        
+        // 現在時刻の表示
+        const currentTime = player.getCurrentTime();
+        document.getElementById('feedbackTimestamp').textContent = formatTime(currentTime);
+        
+        // 入力欄をクリア
+        document.getElementById('feedbackInput').value = '';
+        
+        // モーダルを表示
+        const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+        feedbackModal.show();
+    }
+}
+
+/**
+ * 発言者選択用チェックボックスの更新
+ */
+function updateSpeakerCheckboxes() {
+    const container = document.getElementById('speakerCheckboxes');
+    container.innerHTML = '';
+    
+    // 選択されているユーザーのチェックボックスを作成
+    Array.from(selectedUsers).forEach(userId => {
+        const user = allUsers.find(u => u.user_id === userId);
+        if (user) {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+            div.innerHTML = `
+                <input class="form-check-input speaker-checkbox" 
+                       type="checkbox" 
+                       id="speaker-${userId}" 
+                       value="${userId}">
+                <label class="form-check-label" for="speaker-${userId}">
+                    ${user.name}
+                </label>
+            `;
+            container.appendChild(div);
+        }
+    });
+}
+
+/**
+ * フィードバック送信処理
+ */
+function handleFeedbackSubmit() {
+    const comment = document.getElementById('feedbackInput').value;
+    const timestamp = player.getCurrentTime();
+    
+    // 選択された発言者を取得
+    const speakers = Array.from(document.querySelectorAll('.speaker-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    if (!comment.trim()) {
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.NOTIFICATION,
+            'コメントを入力してください'
+        );
+        return;
+    }
+    
+    if (speakers.length === 0) {
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.NOTIFICATION,
+            '発言者を選択してください'
+        );
+        return;
+    }
+    
+    // フィードバックを記録
+    feedbackManager.recordFeedback(timestamp, comment, speakers)
+        .then(() => {
+            // モーダルを閉じる処理
+            const modal = document.getElementById('feedbackModal');
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            // 入力内容をクリア
+            document.getElementById('feedbackInput').value = '';
+            // チェックボックスをクリア
+            document.querySelectorAll('.speaker-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+
+            // フィードバックテーブルを更新
+            feedbackManager.getFeedbacks();
+            
+            // モーダルのクリーンアップ
+            modal.addEventListener('hidden.bs.modal', function () {
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+            }, { once: true });
+        });
+}
+
+/**
+ * フィードバックデータの取得
+ */
+/**
+ * フィードバックデータの取得
+ */
+function fetchFeedbackData() {
+    console.log('フィードバックデータ取得中...'); 
+
+    if (!isReplayEnabled) {
+        const container = document.getElementById('feedback-data');
+        container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
+        return;
+    }
+    
+    const postData = {
+        video_id: videoId
+    };
+
+    console.log('Fetching feedback data with:', postData);  // デバッグ追加
+
+    fetch('./coordinate/php/get_feedbacks.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.text())  // 一旦テキストとして受け取る
+    .then(text => {
+        console.log('Raw response:', text);  // デバッグ追加
+        const data = JSON.parse(text);
+        console.log('Parsed data:', data);  // デバッグ追加
+        if (data.status === 'success') {
+            feedbackManager.displayFeedbacks(data.feedbacks);
+        }
+    })
+    .catch(error => {
+        console.error('フィードバックデータの取得失敗:', error);
     });
 }

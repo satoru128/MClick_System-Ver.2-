@@ -76,6 +76,10 @@ class ReplayManager {
             console.error('データ取得エラー:', error);
             return false;
         });
+        //フィードバック機能関連
+        if (feedbackManager) {
+            feedbackManager.setEnabled(true);  // リプレイ開始時に有効化
+        }
     }
 
     /**
@@ -413,6 +417,11 @@ class ReplayManager {
         this.clearCanvas();
         this.clearAnnotations();
         this.stateManager = new AnnotationStateManager();
+
+        // フィードバック機能関連
+        if (feedbackManager) {
+            feedbackManager.setEnabled(false);  // リプレイ終了時に無効化
+        }
     }
 
     /**

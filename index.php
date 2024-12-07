@@ -16,6 +16,7 @@
         <script src="./coordinate/script/errorManager.js"></script>
         <script src="./coordinate/script/annotationManager.js"></script>
         <script src="./coordinate/script/replayManager.js"></script>
+        <script src="./coordinate/script/feedbackManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
@@ -74,6 +75,7 @@
                                 </div>
                                 <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
                                 <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
+                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">フィードバック</button>
                                 <button id="exportBtn" class="btn btn-success">エクスポート</button>
                             </div>
 
@@ -195,6 +197,12 @@
                                         シーン記録データ
                                     </button>
                                 </li>
+                                <!-- タブナビゲーション -->
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#feedback-tab" type="button">
+                                        フィードバック
+                                    </button>
+                                </li>
                             </ul>
 
                             <!-- タブコンテンツ -->
@@ -207,6 +215,9 @@
                                 </div>
                                 <div class="tab-pane fade" id="scenes-tab">
                                     <div id="scene-data" class="table-responsive"></div>
+                                </div>
+                                <div class="tab-pane fade" id="feedback-tab">
+                                    <div id="feedback-data" class="table-responsive"></div>
                                 </div>
                             </div>
                         </div>
@@ -227,6 +238,39 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="handleCommentSubmit()">送信</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- フィードバック入力用モーダル -->
+            <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">フィードバック入力</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 発言者選択（選択済みユーザーから） -->
+                            <div class="mb-3">
+                                <label class="form-label">発言者：</label>
+                                <div id="speakerCheckboxes">
+                                    <!-- 動的に追加されるチェックボックス -->
+                                </div>
+                            </div>
+                            <!-- コメント入力欄 -->
+                            <div class="mb-3">
+                                <label for="feedbackInput" class="form-label">コメント：</label>
+                                <textarea id="feedbackInput" class="form-control" rows="3" placeholder="ここにコメントを入力"></textarea>
+                            </div>
+                            <!-- 記録時間の表示 -->
+                            <div class="text-muted">
+                                記録時間: <span id="feedbackTimestamp">0:00</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="handleFeedbackSubmit()">送信</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                         </div>
                     </div>
