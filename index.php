@@ -14,10 +14,11 @@
         <!-- YouTube API -->
         <script src="https://www.youtube.com/iframe_api"></script>
         <!-- カスタムスクリプト -->
-        <script src="./coordinate/script/errorManager.js"></script>
+        <script src="./coordinate/script/errorManager.js"></script> 
         <script src="./coordinate/script/annotationManager.js"></script>
-        <script src="./coordinate/script/replayManager.js"></script>
         <script src="./coordinate/script/feedbackManager.js"></script>
+        <script src="./coordinate/script/replayManager.js"></script>    
+        <script src="./coordinate/script/tableManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
@@ -272,6 +273,26 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="handleFeedbackSubmit()">送信</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 削除確認用モーダル -->
+            <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">削除の確認</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>このデータを削除しますか？</p>
+                            <input type="hidden" id="deleteTargetId">
+                            <input type="hidden" id="deleteTargetType">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" onclick="TableManager.executeDelete()">削除</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                         </div>
                     </div>

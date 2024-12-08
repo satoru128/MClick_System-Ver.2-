@@ -1045,53 +1045,38 @@ function fetchClickCoordinates() {
  * 座標データをテーブル形式で表示（色分け対応）
  */
 function displayCoordinates(coordinates) {
-    const container = document.getElementById('coordinate-data');
-    if (!container) return;
-
-    const table = document.createElement('table');
-    table.className = 'table';
-
-    table.innerHTML = `
-        <thead class="table-light">
-            <tr>
-                <th style="width: 10%;">No.</th>
-                <th style="width: 15%;">時間</th>
-                <th style="width: 15%;">X座標</th>
-                <th style="width: 15%;">Y座標</th>
-                <th style="width: 35%;">コメント</th>
-                <th style="width: 10%;">操作</th> 
-            </tr>
-        </thead>
-        <tbody>
-            ${coordinates.map(coord => {
-                // ユーザーの色を取得
-                const colorIndex = userColorAssignments.get(coord.user_id);
-                
-                // 色が割り当てられている場合のみ背景色を設定
-                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
-                
-                return `
-                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                        <td>${coord.id}</td>
-                        <td>${Number(coord.click_time).toFixed(2)}s</td>
-                        <td>${Number(coord.x_coordinate)}</td>
-                        <td>${Number(coord.y_coordinate)}</td>
-                        <td class="text-break">${coord.comment || ''}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-danger" 
-                                    onclick="deleteCoordinate(${coord.id})"
-                                    title="削除">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('')}
-        </tbody>
-    `;
-
-    container.innerHTML = '';
-    container.appendChild(table);
+    TableManager.displayTable('coordinate', coordinates, {
+        columns: [
+            { label: 'No.', width: '10%' },
+            { label: '時間', width: '15%' },
+            { label: 'X座標', width: '15%' },
+            { label: 'Y座標', width: '15%' },
+            { label: 'コメント', width: '35%' },
+            { label: '操作', width: '10%' }
+        ],
+        formatter: coord => {
+            // ユーザーの色を取得
+            const colorIndex = userColorAssignments.get(coord.user_id);
+            const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+            
+            return `
+                <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                    <td>${coord.id}</td>
+                    <td>${Number(coord.click_time).toFixed(2)}s</td>
+                    <td>${Number(coord.x_coordinate)}</td>
+                    <td>${Number(coord.y_coordinate)}</td>
+                    <td class="text-break">${coord.comment || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="TableManager.showDeleteModal('click', ${coord.id})"
+                                title="削除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
 }
 
 /**
@@ -1177,42 +1162,39 @@ function fetchRangeData() {
  * 範囲選択データをテーブル形式で表示（色分け対応）
  */
 function displayRangeData(ranges) {
-    const container = document.getElementById('range-data');
-    if (!container) return;
-
-    const table = document.createElement('table');
-    table.className = 'table';
-
-    table.innerHTML = `
-        <thead class="table-light">
-            <tr>
-                <th style="width: 10%;">No.</th>
-                <th style="width: 20%;">時間</th>
-                <th style="width: 30%;">選択範囲</th>
-                <th style="width: 40%;">コメント</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${ranges.map(range => {
-                const colorIndex = userColorAssignments.get(range.user_id);
-                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
-                
-                return `
-                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                        <td>${range.id}</td>
-                        <td>${Number(range.click_time).toFixed(2)}s</td>
-                        <td>X:${Number(range.start_x)} Y:${Number(range.start_y)} 
-                            W:${Number(range.width)} H:${Number(range.height)}</td>
-                        <td class="text-break">${range.comment || ''}</td>
-                    </tr>
-                `;
-            }).join('')}
-        </tbody>
-    `;
-
-    container.innerHTML = '';
-    container.appendChild(table);
+    TableManager.displayTable('range', ranges, {
+        columns: [
+            { label: 'No.', width: '10%' },
+            { label: '時間', width: '15%' },
+            { label: '選択範囲', width: '30%' },
+            { label: 'コメント', width: '35%' },
+            { label: '操作', width: '10%' }
+        ],
+        formatter: range => {
+            // ユーザーの色を取得
+            const colorIndex = userColorAssignments.get(range.user_id);
+            const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+            
+            return `
+                <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                    <td>${range.id}</td>
+                    <td>${Number(range.click_time).toFixed(2)}s</td>
+                    <td>X:${Number(range.start_x)} Y:${Number(range.start_y)} 
+                        W:${Number(range.width)} H:${Number(range.height)}</td>
+                    <td class="text-break">${range.comment || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="TableManager.showDeleteModal('range', ${range.id})"
+                                title="削除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
 }
+
 
 /**
  * シーン記録データの取得
@@ -1251,38 +1233,34 @@ function fetchSceneData() {
  * シーン記録データをテーブル形式で表示（色分け対応）
  */
 function displaySceneData(scenes) {
-    const container = document.getElementById('scene-data');
-    if (!container) return;
-
-    const table = document.createElement('table');
-    table.className = 'table';
-
-    table.innerHTML = `
-        <thead class="table-light">
-            <tr>
-                <th style="width: 10%;">No.</th>
-                <th style="width: 20%;">時間</th>
-                <th style="width: 70%;">コメント</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${scenes.map(scene => {
-                const colorIndex = userColorAssignments.get(scene.user_id);
-                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
-                
-                return `
-                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                        <td>${scene.id}</td>
-                        <td>${Number(scene.click_time).toFixed(2)}s</td>
-                        <td class="text-break">${scene.comment || ''}</td>
-                    </tr>
-                `;
-            }).join('')}
-        </tbody>
-    `;
-
-    container.innerHTML = '';
-    container.appendChild(table);
+    TableManager.displayTable('scene', scenes, {
+        columns: [
+            { label: 'No.', width: '10%' },
+            { label: '時間', width: '20%' },
+            { label: 'コメント', width: '60%' },
+            { label: '操作', width: '10%' }
+        ],
+        formatter: scene => {
+            // ユーザーの色を取得
+            const colorIndex = userColorAssignments.get(scene.user_id);
+            const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+            
+            return `
+                <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                    <td>${scene.id}</td>
+                    <td>${Number(scene.click_time).toFixed(2)}s</td>
+                    <td class="text-break">${scene.comment || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="TableManager.showDeleteModal('scene', ${scene.id})"
+                                title="削除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
 }
 
 
@@ -1826,30 +1804,29 @@ function handleFeedbackSubmit() {
  * フィードバックデータの取得
  */
 function fetchFeedbackData() {
-    console.log('フィードバックデータ取得中...'); 
-
+    // リプレイモードがOFFの場合
     if (!isReplayEnabled) {
         const container = document.getElementById('feedback-data');
         container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
         return;
     }
-    
+
+    // feedbackManagerが未初期化の場合の処理を追加
+    if (!feedbackManager) {
+        feedbackManager = new FeedbackManager();
+    }
+
     const postData = {
         video_id: videoId
     };
-
-    console.log('Fetching feedback data with:', postData);  // デバッグ追加
 
     fetch('./coordinate/php/get_feedbacks.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData)
     })
-    .then(response => response.text())  // 一旦テキストとして受け取る
-    .then(text => {
-        console.log('Raw response:', text);  // デバッグ追加
-        const data = JSON.parse(text);
-        console.log('Parsed data:', data);  // デバッグ追加
+    .then(response => response.json())
+    .then(data => {
         if (data.status === 'success') {
             feedbackManager.displayFeedbacks(data.feedbacks);
         }

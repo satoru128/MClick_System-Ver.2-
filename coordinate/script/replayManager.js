@@ -411,6 +411,23 @@ class ReplayManager {
     }
 
     /**
+     * アノテーションのクリーンアップ
+     */
+    clearAnnotations() {
+        document.querySelectorAll('.annotation-container').forEach(container => {
+            const popover = bootstrap.Popover.getInstance(container);
+            if (popover) {
+                try {
+                    popover.dispose();
+                } catch (error) {
+                    console.warn('Popover cleanup error:', error);
+                }
+            }
+            container.remove();
+        });
+    }
+    
+    /**
      * リプレイモードの終了処理
      */
     finishReplay() {
