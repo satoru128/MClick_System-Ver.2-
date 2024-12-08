@@ -108,9 +108,10 @@ class FeedbackManager {
                             <td>${feedback.speakers ? feedback.speakers.join(', ') : ''}</td>
                             <td class="text-break">${feedback.comment}</td>
                             <td>
-                                <button class="btn btn-sm btn-danger" 
-                                        onclick="feedbackManager.deleteFeedback(${feedback.id})">
-                                    削除
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="feedbackManager.deleteFeedback(${feedback.id})"
+                                        title="削除">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </td>
                         </tr>

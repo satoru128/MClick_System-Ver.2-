@@ -1055,10 +1055,11 @@ function displayCoordinates(coordinates) {
         <thead class="table-light">
             <tr>
                 <th style="width: 10%;">No.</th>
-                <th style="width: 20%;">時間</th>
+                <th style="width: 15%;">時間</th>
                 <th style="width: 15%;">X座標</th>
                 <th style="width: 15%;">Y座標</th>
-                <th style="width: 40%;">コメント</th>
+                <th style="width: 35%;">コメント</th>
+                <th style="width: 10%;">操作</th> 
             </tr>
         </thead>
         <tbody>
@@ -1076,6 +1077,13 @@ function displayCoordinates(coordinates) {
                         <td>${Number(coord.x_coordinate)}</td>
                         <td>${Number(coord.y_coordinate)}</td>
                         <td class="text-break">${coord.comment || ''}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteCoordinate(${coord.id})"
+                                    title="削除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).join('')}
@@ -1790,11 +1798,15 @@ function handleFeedbackSubmit() {
     // フィードバックを記録
     feedbackManager.recordFeedback(timestamp, comment, speakers)
         .then(() => {
-            // モーダルを閉じる処理
+            // モーダルを完全に閉じる
             const modal = document.getElementById('feedbackModal');
             const modalInstance = bootstrap.Modal.getInstance(modal);
             if (modalInstance) {
                 modalInstance.hide();
+                // バックドロップと不要なクラスを削除
+                document.body.classList.remove('modal-open');
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) backdrop.remove();
             }
             
             // 入力内容をクリア
@@ -1803,24 +1815,13 @@ function handleFeedbackSubmit() {
             document.querySelectorAll('.speaker-checkbox').forEach(cb => {
                 cb.checked = false;
             });
-
-            // フィードバックテーブルを更新
-            feedbackManager.getFeedbacks();
             
-            // モーダルのクリーンアップ
-            modal.addEventListener('hidden.bs.modal', function () {
-                document.body.classList.remove('modal-open');
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) {
-                    backdrop.remove();
-                }
-            }, { once: true });
+            // データ更新
+            fetchFeedbackData();
         });
 }
 
-/**
- * フィードバックデータの取得
- */
+
 /**
  * フィードバックデータの取得
  */

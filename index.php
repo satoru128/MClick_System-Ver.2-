@@ -7,6 +7,7 @@
         
         <!-- スタイルシート -->
         <link href="./Bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
         <link rel="stylesheet" href="./coordinate/css/style.css">
         <!-- Bootstrap Bundle (JS) -->
         <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
