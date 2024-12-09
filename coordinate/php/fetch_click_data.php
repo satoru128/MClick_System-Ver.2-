@@ -1,8 +1,6 @@
 <?php
 /**
  * クリック座標データを取得するAPI
- * 
- * データベースに保存されているクリック座標を，クリック時間順に取得し，JSONとして返す．
  */
 require_once("MYDB.php");
 header('Content-Type: application/json');
@@ -15,10 +13,10 @@ try {
     $user_ids = $data['user_ids'] ?? [];
     $video_id = $data['video_id'];
     
-    // 選択されたユーザーのデータを取得
+    // 選択されたユーザーのデータのみを取得
     $placeholders = str_repeat('?,', count($user_ids) - 1) . '?';
     $stmt = $pdo->prepare("
-        SELECT id, user_id, click_time, x_coordinate, y_coordinate, comment 
+        SELECT id, user_id, click_time, comment 
         FROM click_coordinates 
         WHERE video_id = ? 
         AND user_id IN ($placeholders)

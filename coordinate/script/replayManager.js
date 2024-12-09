@@ -133,7 +133,6 @@ class ReplayManager {
         
         visibleAnnotations
             .filter(annotation => {
-                // 表示設定に基づくフィルタリング
                 switch(annotation.type) {
                     case 'click':
                         return displaySettings.showClicks;
@@ -156,10 +155,15 @@ class ReplayManager {
 
                 if (!container) {
                     container = this.createAnnotationElement(annotation);
-                    const videoContainer = document.getElementById('video-container');
-                    videoContainer.appendChild(container);
-                    if (annotation.comment) {
-                        this.showComment(container, annotation);
+                    // コンテナが正しく作成された場合のみ追加
+                    if (container) {
+                        const videoContainer = document.getElementById('video-container');
+                        if (videoContainer) {
+                            videoContainer.appendChild(container);
+                            if (annotation.comment) {
+                                this.showComment(container, annotation);
+                            }
+                        }
                     }
                 } else {
                     currentElements.delete(container);
@@ -172,16 +176,9 @@ class ReplayManager {
             if (popover) {
                 popover.dispose();
             }
-            element.remove();
-        });
-
-        // 不要な要素を削除
-        currentElements.forEach(element => {
-            const popover = bootstrap.Popover.getInstance(element);
-            if (popover) {
-                popover.dispose();
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
             }
-            element.remove();
         });
     }
 
@@ -426,7 +423,7 @@ class ReplayManager {
             container.remove();
         });
     }
-    
+
     /**
      * リプレイモードの終了処理
      */

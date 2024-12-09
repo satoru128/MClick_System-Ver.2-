@@ -210,7 +210,7 @@
                             <!-- タブコンテンツ -->
                             <div class="tab-content mt-3">
                                 <div class="tab-pane fade show active" id="clicks-tab">
-                                    <div id="coordinate-data" class="table-responsive"></div>
+                                    <div id="click-data" class="table-responsive"></div>
                                 </div>
                                 <div class="tab-pane fade" id="ranges-tab">
                                     <div id="range-data" class="table-responsive"></div>
@@ -236,6 +236,9 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <input type="hidden" id="commentMode" value="new">
+                            <input type="hidden" id="editTargetId">
+                            <input type="hidden" id="editTargetType">
                             <textarea id="commentInput" class="form-control" rows="3" placeholder="ここにコメントを入力"></textarea>
                         </div>
                         <div class="modal-footer">

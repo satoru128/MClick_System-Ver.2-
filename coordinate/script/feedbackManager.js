@@ -21,9 +21,6 @@ class FeedbackManager {
      * フィードバックデータの表示
      */
     displayFeedbacks(feedbacks) {
-        console.log('Displaying feedbacks:', feedbacks);
-        
-        // TableManagerの共通機能を利用
         TableManager.displayTable('feedback', feedbacks, {
             columns: [
                 { label: '時間', width: '20%' },
@@ -35,7 +32,19 @@ class FeedbackManager {
                 <tr>
                     <td>${Number(feedback.timestamp).toFixed(2)}s</td>
                     <td>${feedback.speakers ? feedback.speakers.join(', ') : ''}</td>
-                    <td class="text-break">${feedback.comment}</td>
+                    <td class="text-break position-relative">
+                        ${feedback.comment || ''}
+                        <button class="btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y p-0 mx-1"
+                                onclick="showCommentModal('feedback', {
+                                    mode: 'edit',
+                                    id: ${feedback.id},
+                                    type: 'feedback',
+                                    comment: '${feedback.comment?.replace(/'/g, "\\'") || ''}'
+                                })"
+                                title="コメントを編集">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" 
                                 onclick="TableManager.showDeleteModal('feedback', ${feedback.id})"

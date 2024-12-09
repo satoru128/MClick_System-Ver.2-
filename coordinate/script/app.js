@@ -424,7 +424,7 @@ function handleCanvasClick(event) {
         .then(result => {
             console.log('座標保存成功:', result);
             visualizeClick(x, y);  // クリック位置を可視化
-            return fetchClickCoordinates();  // 座標データ一覧を更新
+            return fetchClickData();  // 座標データ一覧を更新
         })
         .catch(error => {
             console.error('座標の保存に失敗:', error);
@@ -608,7 +608,7 @@ function startRangeSelection() {
     const canvas = document.getElementById('myCanvas');
     isDrawingRange = true;
 
-    // 最初のクリックで開始位置を設定
+    // １回目のクリックで開始位置を設定
     function onFirstClick(e) {
         // 通常のクリックイベントを防止
         e.preventDefault();
@@ -645,7 +645,7 @@ function startRangeSelection() {
         ctx.strokeRect(rangeStartX, rangeStartY, width, height);
     }
 
-    // 2回目のクリックで範囲を確定
+    // ２回目のクリックで範囲を確定
     function onSecondClick(e) {
         // 通常のクリックイベントを防止
         e.preventDefault();
@@ -770,7 +770,7 @@ function handleUserCheckboxChange(e) {
     updateColorPreviews();
     
     // 全てのデータテーブルを更新
-    fetchClickCoordinates();
+    fetchClickData()
     fetchRangeData();
     fetchSceneData();
     if (feedbackManager) {
@@ -815,7 +815,7 @@ function initializeUserSelect() {
     `;
     
     // 座標データ表示領域の前に挿入
-    const coordDataDiv = document.getElementById('coordinate-data');
+    const coordDataDiv = document.getElementById('click-data');
     coordDataDiv.parentNode.insertBefore(userSelectDiv, coordDataDiv);
 
     // ユーザー一覧の取得と表示
@@ -832,7 +832,7 @@ function fetchUserList() {
             if (data.status === 'success') {
                 allUsers = data.users;
                 renderUserSelect();
-                fetchClickCoordinates();
+                fetchClickData() 
                 fetchRangeData();
                 fetchSceneData()
             }
@@ -917,7 +917,7 @@ function renderUserSelect() {
             
             // 色プレビューの更新
             updateColorPreviews();
-            fetchClickCoordinates();
+            fetchClickData()
             fetchRangeData();
             fetchSceneData();
             updateSelectedUsersDisplay();
@@ -1004,97 +1004,7 @@ function updateSelectedUsersDisplay() {
 }
 
 //===========================================
-// データ表示テーブル➀（クリック座標）
-//===========================================
-/**
- * クリック座標データの取得
- */
-function fetchClickCoordinates() {
-    console.log('データ取得中...'); 
-    
-    // 選択されているユーザーがいない場合の処理
-    if (selectedUsers.size === 0) {
-        const container = document.getElementById('coordinate-data');
-        container.innerHTML = '<p class="text-center">ユーザーを選択してください</p>';
-        return;
-    }
-
-    // POSTデータの準備
-    const postData = {
-        user_ids: Array.from(selectedUsers),
-        video_id: videoId
-    };
-
-    fetch('./coordinate/php/fetch_click_coordinates.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            displayCoordinates(data.data);
-        }
-    })
-    .catch(error => {
-        console.error('座標データの取得失敗:', error);
-    });
-}
-
-/**
- * 座標データをテーブル形式で表示（色分け対応）
- */
-function displayCoordinates(coordinates) {
-    TableManager.displayTable('coordinate', coordinates, {
-        columns: [
-            { label: 'No.', width: '10%' },
-            { label: '時間', width: '15%' },
-            { label: 'X座標', width: '15%' },
-            { label: 'Y座標', width: '15%' },
-            { label: 'コメント', width: '35%' },
-            { label: '操作', width: '10%' }
-        ],
-        formatter: coord => {
-            // ユーザーの色を取得
-            const colorIndex = userColorAssignments.get(coord.user_id);
-            const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
-            
-            return `
-                <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                    <td>${coord.id}</td>
-                    <td>${Number(coord.click_time).toFixed(2)}s</td>
-                    <td>${Number(coord.x_coordinate)}</td>
-                    <td>${Number(coord.y_coordinate)}</td>
-                    <td class="text-break">${coord.comment || ''}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="TableManager.showDeleteModal('click', ${coord.id})"
-                                title="削除">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-    });
-}
-
-/**
- * 背景色の明度を計算（文字色の自動調整用）
- * @param {string} color - HSL色文字列
- * @returns {number} 明度（0-1）
- */
-function getLuminance(color) {
-    // HSL形式の色から明度（L）を抽出
-    const match = color.match(/hsl\(\d+,\s*\d+%,\s*(\d+)%\)/);
-    if (match) {
-        return parseInt(match[1], 10) / 100;
-    }
-    return 0.5; // デフォルト値
-}
-
-//===========================================
-// データ表示テーブル➁➂（範囲選択，シーン記録）
+// データ表示テーブル（クリック座標，範囲選択，シーン記録，フィードバック）
 //===========================================
 /**
  * タブ切り替えとデータ表示の初期化
@@ -1105,7 +1015,7 @@ function initializeTabsAndData() {
         tab.addEventListener('shown.bs.tab', function(event) {
             switch(event.target.dataset.bsTarget) {
                 case '#clicks-tab':
-                    fetchClickCoordinates();
+                    fetchClickData();
                     break;
                 case '#ranges-tab':
                     fetchRangeData();
@@ -1121,7 +1031,76 @@ function initializeTabsAndData() {
     });
 
     // 初期表示時のデータ取得
-    fetchClickCoordinates();
+    fetchClickData();
+}
+
+/**
+ * クリック座標データの取得
+ */
+function fetchClickData() {    
+    console.log('クリック座標データ取得中...'); 
+    
+    if (selectedUsers.size === 0) {
+        const container = document.getElementById('click-data');
+        container.innerHTML = '<p class="text-center">ユーザーを選択してください</p>';
+        return;
+    }
+
+    const postData = {
+        user_ids: Array.from(selectedUsers),
+        video_id: videoId
+    };
+
+    fetch('./coordinate/php/fetch_click_data.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('クリックデータ:', data); // デバッグ用に追加
+        if (data.status === 'success') {
+            displayClickData(data.data);
+        }
+    })
+    .catch(error => {
+        console.error('クリック座標データの取得失敗:', error);
+    });
+}
+
+/**
+ * クリック座標データをテーブル形式で表示
+ */
+function displayClickData(clicks) {
+    console.log('TableManager呼び出し前のデータ:', clicks); // デバッグ用に追加
+    TableManager.displayTable('click', clicks, {
+        columns: [
+            { label: 'No.', width: '10%' },
+            { label: '時間', width: '20%' },
+            { label: 'コメント', width: '60%' },
+            { label: '操作', width: '10%' }
+        ],
+        formatter: click => {
+            // ユーザーの色を取得
+            const colorIndex = userColorAssignments.get(click.user_id);
+            const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+            
+            return `
+                <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                    <td>${click.id}</td>
+                    <td>${Number(click.click_time).toFixed(2)}s</td>
+                    <td class="text-break">${click.comment || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="TableManager.showDeleteModal('click', ${click.id})"
+                                title="削除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
 }
 
 /**
@@ -1149,6 +1128,7 @@ function fetchRangeData() {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('範囲データ:', data); // デバッグ用に追加
         if (data.status === 'success') {
             displayRangeData(data.data);
         }
@@ -1159,7 +1139,7 @@ function fetchRangeData() {
 }
 
 /**
- * 範囲選択データをテーブル形式で表示（色分け対応）
+ * 範囲選択データをテーブル形式で表示
  */
 function displayRangeData(ranges) {
     TableManager.displayTable('range', ranges, {
@@ -1230,7 +1210,7 @@ function fetchSceneData() {
 }
 
 /**
- * シーン記録データをテーブル形式で表示（色分け対応）
+ * シーン記録データをテーブル形式で表示
  */
 function displaySceneData(scenes) {
     TableManager.displayTable('scene', scenes, {
@@ -1262,6 +1242,8 @@ function displaySceneData(scenes) {
         }
     });
 }
+
+// フィードバックは下記にまとめているのでここには記載していない
 
 
 //===========================================
@@ -1308,7 +1290,7 @@ function handleMistakeClick() {
                 ErrorManager.ErrorTypes.CANCEL,
                 ErrorManager.Messages.LAST_CLICK_DELETED
             );
-            fetchClickCoordinates();
+            fetchClickData();
             const currentTime = player.getCurrentTime();
             player.seekTo(Math.max(currentTime - 1, 0), true);
         } else if (result.status === 'no_data') {
@@ -1372,41 +1354,60 @@ function handleCommentClick() {
  */
 function handleCommentSubmit() {
     const commentText = document.getElementById('commentInput').value;
-    const modalTitle = document.querySelector('#commentModal .modal-title').textContent;
-
+    const mode = document.getElementById('commentMode').value;
+    
     if (!commentText.trim()) {
-        alert('コメントを入力してください');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.NOTIFICATION,
+            'コメントを入力してください'
+        );
         return;
     }
 
     let endpoint;
     let postData;
 
-    switch(modalTitle) {
-        case 'クリック座標のコメント':
-            endpoint = './coordinate/php/update_latest_comment.php';
-            postData = {
-                user_id: userId,
-                video_id: videoId,
-                comment: commentText
-            };
-            break;
+    if (mode === 'edit') {
+        // 編集モード
+        const targetId = document.getElementById('editTargetId').value;
+        const targetType = document.getElementById('editTargetType').value;
         
-        case '範囲選択のコメント':
-        case 'シーン記録のコメント':
-            if (!tempSelectionData) return;
+        endpoint = './coordinate/php/update_comment.php';
+        postData = {
+            id: targetId,
+            type: targetType,
+            comment: commentText
+        };
+    } else {
+        // 新規作成モード
+        const modalTitle = document.querySelector('#commentModal .modal-title').textContent;
+        
+        switch(modalTitle) {
+            case 'クリック座標のコメント':
+                endpoint = './coordinate/php/update_latest_comment.php';
+                postData = {
+                    user_id: userId,
+                    video_id: videoId,
+                    comment: commentText
+                };
+                break;
             
-            endpoint = tempSelectionData.type === 'range' 
-                ? './coordinate/php/save_range_selection.php'
-                : './coordinate/php/save_scene.php';
-            
-            postData = {
-                ...tempSelectionData.data,
-                user_id: userId,
-                video_id: videoId,
-                comment: commentText
-            };
-            break;
+            case '範囲選択のコメント':
+            case 'シーン記録のコメント':
+                if (!tempSelectionData) return;
+                
+                endpoint = tempSelectionData.type === 'range' 
+                    ? './coordinate/php/save_range_selection.php'
+                    : './coordinate/php/save_scene.php';
+                
+                postData = {
+                    ...tempSelectionData.data,
+                    user_id: userId,
+                    video_id: videoId,
+                    comment: commentText
+                };
+                break;
+        }
     }
 
     fetch(endpoint, {
@@ -1417,42 +1418,45 @@ function handleCommentSubmit() {
     .then(response => response.json())
     .then(result => {
         if (result.status === 'success') {
+            // モーダルを閉じる
+            const modal = bootstrap.Modal.getInstance(document.getElementById('commentModal'));
+            modal.hide();
 
-            // モーダルを閉じる処理
-            const modal = document.getElementById('commentModal');
-            const commentModal = bootstrap.Modal.getInstance(modal);
-            commentModal.hide();
+            // 成功メッセージを表示
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.SUCCESS,
+                mode === 'edit' ? 'コメントを更新しました' : 'コメントを保存しました'
+            );
+
+            // データを更新
+            fetchClickData();
+            fetchRangeData();
+            fetchSceneData();
 
             // モーダルの状態をリセット
             resetModalState();
-
-            // 全てのコメント送信成功時に視覚的フィードバック
-            const videoContainer = document.getElementById('video-container');
-            videoContainer.classList.add('border-flash');
-            setTimeout(() => {
-                videoContainer.classList.remove('border-flash');
-            }, 500);
-
-            // 動画を再生
-            player.playVideo();
             
-            // データを更新
-            fetchClickCoordinates();
-            fetchRangeData();
-            fetchSceneData();
+            // 動画を再生（新規作成時のみ）
+            if (mode !== 'edit') {
+                player.playVideo();
+            }
         }
     })
     .catch(error => {
         console.error('コメントの保存に失敗:', error);
-        alert('コメントの保存中にエラーが発生しました。');
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.ERROR,
+            'コメントの保存中にエラーが発生しました'
+        );
     });
 }
 
 /**
  * コメントモーダルの表示
- * @param {string} type - 'coordinate'（通常クリック）, 'range'（範囲選択）, 'scene'（シーン記録）
+ * @param {string} type - データタイプ（'coordinate', 'range', 'scene'）
+ * @param {Object} options - オプション（編集モードの場合）
  */
-function showCommentModal(type) {
+function showCommentModal(type, options = {}) {
     const modal = document.getElementById('commentModal');
     const titleElement = modal.querySelector('.modal-title');
     const commentInput = document.getElementById('commentInput');
@@ -1464,48 +1468,28 @@ function showCommentModal(type) {
         existingCounter.remove();
     }
 
-    // 入力欄をクリア
-    commentInput.value = '';
-    
-    // タイプに応じてタイトル設定
-    switch(type) {
-        case 'coordinate':
-            titleElement.textContent = 'クリック座標のコメント';
-            break;
-        case 'range':
-            titleElement.textContent = '範囲選択のコメント';
-            break;
-        case 'scene':
-            titleElement.textContent = 'シーン記録のコメント';
-            break;
+    // モードの設定
+    document.getElementById('commentMode').value = options.mode || 'new';
+    if (options.mode === 'edit') {
+        document.getElementById('editTargetId').value = options.id || '';
+        document.getElementById('editTargetType').value = options.type || '';
     }
 
-    // 文字数カウンターの追加
-    const charCountDiv = document.createElement('div');
-    charCountDiv.id = 'charCount';
-    charCountDiv.className = 'mt-2 text-muted small';
-    charCountDiv.innerHTML = '残り文字数: <span>100</span>文字';
-    modalBody.appendChild(charCountDiv);
-
-    // 文字数制限とカウンター更新の設定
-    commentInput.maxLength = 100;
-    const updateCharCount = () => {
-        const remaining = 100 - commentInput.value.length;
-        const countSpan = charCountDiv.querySelector('span');
-        countSpan.textContent = remaining;
-        countSpan.style.color = remaining < 20 ? '#dc3545' : '';
-    };
-
-    // 入力イベントのリスナーを設定
-    commentInput.addEventListener('input', updateCharCount);
+    // 入力欄の初期化
+    commentInput.value = options.comment || '';
     
-    // Enterキーでの送信
-    commentInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.ctrlKey) {
-            e.preventDefault();
-            document.querySelector('#commentModal .btn-primary').click();
+    // タイプに応じてタイトル設定
+    titleElement.textContent = options.mode === 'edit' ? 'コメントの編集' : (() => {
+        switch(type) {
+            case 'coordinate': return 'クリック座標のコメント';
+            case 'range': return '範囲選択のコメント';
+            case 'scene': return 'シーン記録のコメント';
+            default: return 'コメント入力';
         }
-    });
+    })();
+
+    // 文字数カウンターの追加と設定
+    setupCharCounter(modalBody, commentInput);
 
     // モーダル表示時の処理
     modal.addEventListener('shown.bs.modal', () => {
@@ -1519,6 +1503,31 @@ function showCommentModal(type) {
     // モーダル表示
     const commentModal = new bootstrap.Modal(modal);
     commentModal.show();
+}
+
+/**
+ * 文字数カウンターのセットアップ
+ */
+function setupCharCounter(modalBody, commentInput) {
+    const charCountDiv = document.createElement('div');
+    charCountDiv.id = 'charCount';
+    charCountDiv.className = 'mt-2 text-muted small';
+    charCountDiv.innerHTML = '残り文字数: <span>100</span>文字';
+    modalBody.appendChild(charCountDiv);
+
+    commentInput.maxLength = 100;
+    commentInput.addEventListener('input', updateCharCount);
+}
+
+/**
+ * 文字数カウントを更新する関数
+ */
+function updateCharCount() {
+    const commentInput = document.getElementById('commentInput');
+    const countSpan = document.querySelector('#charCount span');
+    const remaining = 100 - commentInput.value.length;
+    countSpan.textContent = remaining;
+    countSpan.style.color = remaining < 20 ? '#dc3545' : '';
 }
 
 /**
@@ -1835,3 +1844,4 @@ function fetchFeedbackData() {
         console.error('フィードバックデータの取得失敗:', error);
     });
 }
+

@@ -84,7 +84,11 @@ class ErrorManager {
         LAST_CLICK_DELETED: '最後のクリックを取り消しました',
         EXPORT_SUCCESS: 'データがエクスポートされました',
         NO_EXPORT_DATA: 'エクスポートするデータがありません',
-        EXPORT_ERROR: 'エクスポートに失敗しました'
+        EXPORT_ERROR: 'エクスポートに失敗しました',
+        COMMENT_REQUIRED: 'コメントを入力してください',
+        COMMENT_UPDATED: 'コメントを更新しました',
+        COMMENT_SAVED: 'コメントを保存しました',
+        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました'
     };
 }
 

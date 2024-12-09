@@ -3,35 +3,89 @@
  */
 class TableManager {
     /**
+     * コメント編集モーダルの表示
+     */
+    static showCommentEditModal(type, id, currentComment) {
+        // 動画を一時停止
+        if (player) {
+            player.pauseVideo();
+        }
+        
+        // 既存のモーダルの再利用
+        showCommentModal(type, {
+            mode: 'edit',
+            id: id,
+            type: type,
+            comment: currentComment
+        });
+    }
+
+    /**
      * テーブルの共通表示処理
      * @param {string} type - テーブルの種類（'click', 'range', 'scene', 'feedback'）
      * @param {Array} data - 表示データ
      * @param {Object} options - 表示オプション
      */
+
     static displayTable(type, data, options) {
         const container = document.getElementById(`${type}-data`);
         if (!container) return;
 
         const table = document.createElement('table');
-        table.className = 'table';
-
+        table.className = 'table table-hover';
+        
         // ヘッダー部分の生成
-        table.innerHTML = `
-            <thead class="table-light">
-                <tr>
-                    ${options.columns.map(col => 
-                        `<th style="width: ${col.width || 'auto'};">${col.label}</th>`
-                    ).join('')}
-                </tr>
-            </thead>
-            <tbody>
-                ${data && data.length > 0 ? 
-                    data.map(item => options.formatter(item)).join('') :
-                    `<tr><td colspan="${options.columns.length}" class="text-center">データがありません</td></tr>`
-                }
-            </tbody>
+        const thead = document.createElement('thead');
+        thead.className = 'table-light';
+        thead.innerHTML = `
+            <tr>
+                ${options.columns.map(col => 
+                    `<th style="width: ${col.width || 'auto'};">${col.label}</th>`
+                ).join('')}
+            </tr>
         `;
-
+        table.appendChild(thead);
+        
+        // ボディ部分の生成
+        const tbody = document.createElement('tbody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${options.columns.length}" class="text-center">
+                        データがありません
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = data.map(item => {
+                const colorIndex = userColorAssignments.get(item.user_id);
+                const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td>${item.id}</td>
+                        <td>${Number(item.click_time).toFixed(2)}s</td>
+                        <td class="text-break d-flex justify-content-between align-items-center">
+                            <div class="me-2">${item.comment || ''}</div>
+                            <button class="btn btn-sm btn-link p-0"
+                                    onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
+                                    title="コメントを編集">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="TableManager.showDeleteModal('${type}', ${item.id})"
+                                    title="削除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        table.appendChild(tbody);
+        
         container.innerHTML = '';
         container.appendChild(table);
     }
@@ -124,7 +178,7 @@ class TableManager {
     static updateTable(type) {
         switch(type) {
             case 'click':
-                fetchClickCoordinates();
+                fetchClickData();
                 break;
             case 'range':
                 fetchRangeData();

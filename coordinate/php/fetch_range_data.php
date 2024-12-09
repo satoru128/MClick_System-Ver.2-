@@ -28,7 +28,7 @@ try {
     // パラメータをバインド
     $params = array_merge([$video_id], $user_ids);
     $stmt->execute($params);
-    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);   // 配列作成
     
     echo json_encode([
         'status' => 'success',
