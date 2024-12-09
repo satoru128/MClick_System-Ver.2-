@@ -18,7 +18,7 @@ try {
     // 選択されたユーザーのデータのみを取得
     $placeholders = str_repeat('?,', count($user_ids) - 1) . '?';
     $stmt = $pdo->prepare("
-        SELECT id, user_id, click_time, start_x, start_y, width, height, comment 
+        SELECT id, user_id, click_time, comment 
         FROM range_selections 
         WHERE video_id = ? 
         AND user_id IN ($placeholders)

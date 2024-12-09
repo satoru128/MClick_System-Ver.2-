@@ -1145,9 +1145,8 @@ function displayRangeData(ranges) {
     TableManager.displayTable('range', ranges, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '15%' },
-            { label: '選択範囲', width: '30%' },
-            { label: 'コメント', width: '35%' },
+            { label: '時間', width: '20%' },
+            { label: 'コメント', width: '60%' },
             { label: '操作', width: '10%' }
         ],
         formatter: range => {
@@ -1159,8 +1158,6 @@ function displayRangeData(ranges) {
                 <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                     <td>${range.id}</td>
                     <td>${Number(range.click_time).toFixed(2)}s</td>
-                    <td>X:${Number(range.start_x)} Y:${Number(range.start_y)} 
-                        W:${Number(range.width)} H:${Number(range.height)}</td>
                     <td class="text-break">${range.comment || ''}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" 
