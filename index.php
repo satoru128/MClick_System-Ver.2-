@@ -7,12 +7,18 @@
         
         <!-- スタイルシート -->
         <link href="./Bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
         <link rel="stylesheet" href="./coordinate/css/style.css">
         <!-- Bootstrap Bundle (JS) -->
         <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
         <!-- YouTube API -->
         <script src="https://www.youtube.com/iframe_api"></script>
         <!-- カスタムスクリプト -->
+        <script src="./coordinate/script/errorManager.js"></script> 
+        <script src="./coordinate/script/annotationManager.js"></script>
+        <script src="./coordinate/script/feedbackManager.js"></script>
+        <script src="./coordinate/script/replayManager.js"></script>    
+        <script src="./coordinate/script/tableManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
@@ -71,6 +77,7 @@
                                 </div>
                                 <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
                                 <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
+                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">フィードバック</button>
                                 <button id="exportBtn" class="btn btn-success">エクスポート</button>
                             </div>
 
@@ -78,6 +85,11 @@
                             <div>
                                 <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
                                 <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                            </div>
+                            <!--再生速度-->
+                            <div>
+                                <label for="speedSlider" class="form-label">再生速度：<span id="currentSpeed">1.0</span>x</label>
+                                <input type="range" class="form-range" id="speedSlider" min="0.25" max="2" step="0.25" value="1">
                             </div>
                         </div>
                     </div>
@@ -187,18 +199,27 @@
                                         シーン記録データ
                                     </button>
                                 </li>
+                                <!-- タブナビゲーション -->
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#feedback-tab" type="button">
+                                        フィードバック
+                                    </button>
+                                </li>
                             </ul>
 
                             <!-- タブコンテンツ -->
                             <div class="tab-content mt-3">
                                 <div class="tab-pane fade show active" id="clicks-tab">
-                                    <div id="coordinate-data" class="table-responsive"></div>
+                                    <div id="click-data" class="table-responsive"></div>
                                 </div>
                                 <div class="tab-pane fade" id="ranges-tab">
                                     <div id="range-data" class="table-responsive"></div>
                                 </div>
                                 <div class="tab-pane fade" id="scenes-tab">
                                     <div id="scene-data" class="table-responsive"></div>
+                                </div>
+                                <div class="tab-pane fade" id="feedback-tab">
+                                    <div id="feedback-data" class="table-responsive"></div>
                                 </div>
                             </div>
                         </div>
@@ -215,10 +236,66 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <input type="hidden" id="commentMode" value="new">
+                            <input type="hidden" id="editTargetId">
+                            <input type="hidden" id="editTargetType">
                             <textarea id="commentInput" class="form-control" rows="3" placeholder="ここにコメントを入力"></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="handleCommentSubmit()">送信</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- フィードバック入力用モーダル -->
+            <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">フィードバック入力</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 発言者選択（選択済みユーザーから） -->
+                            <div class="mb-3">
+                                <label class="form-label">発言者：</label>
+                                <div id="speakerCheckboxes">
+                                    <!-- 動的に追加されるチェックボックス -->
+                                </div>
+                            </div>
+                            <!-- コメント入力欄 -->
+                            <div class="mb-3">
+                                <label for="feedbackInput" class="form-label">コメント：</label>
+                                <textarea id="feedbackInput" class="form-control" rows="3" placeholder="ここにコメントを入力"></textarea>
+                            </div>
+                            <!-- 記録時間の表示 -->
+                            <div class="text-muted">
+                                記録時間: <span id="feedbackTimestamp">0:00</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="handleFeedbackSubmit()">送信</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 削除確認用モーダル -->
+            <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">削除の確認</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>このデータを削除しますか？</p>
+                            <input type="hidden" id="deleteTargetId">
+                            <input type="hidden" id="deleteTargetType">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" onclick="TableManager.executeDelete()">削除</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                         </div>
                     </div>

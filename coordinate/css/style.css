@@ -3,7 +3,7 @@
     box-sizing: border-box;
 }
 
-#video-container {
+#video-container {  /* 動画エリア */
     position: relative;
     width: 640px;
     height: 360px;
@@ -11,7 +11,7 @@
     border: 3px solid transparent;  /* 初期状態の透明なボーダー */
 }
 
-#player {
+#player {   /* YouTubeプレーヤー */
     position: absolute;
     top: 0;
     left: 0;
@@ -21,7 +21,7 @@
     pointer-events: none !important; /* YouTubeプレーヤーのクリックイベントを無効化 */
 }
 
-#myCanvas {
+#myCanvas { /* キャンバス */
     position: absolute;
     top: 0;
     left: 0;
@@ -32,7 +32,6 @@
     cursor: crosshair;  /* クリック可能なことを視覚的に示す */
     background-color: transparent;
 }
-
 
 /* クリック座標表示用のスタイル */
 #coordinate-data {
@@ -73,12 +72,12 @@
     white-space: normal; /* 複数行表示を許可 */
 }
 
-/* エラー時のシェイクアニメーション */
+/* エラー時のシェイク */
 .error-shake {
     animation: shake 0.5s linear;
 }
 
-@keyframes shake {
+@keyframes shake {  /* シェイクアニメーション */
     0% { transform: translateX(0); }
     25% { transform: translateX(5px); }
     50% { transform: translateX(-5px); }
@@ -198,6 +197,11 @@
     z-index: 1002;
 }
 
+.popover-body { /* ポップオーバー本文の余白 */
+    padding: 4px 8px;  /* 上下4px、左右8pxに余白を縮小 */
+    line-height: 1.2;  /* 行間も少し詰める */
+}
+
 .annotation-number:hover {  /* ホバー時のリンクスタイル */
     color: #0056b3;
 }
@@ -209,4 +213,9 @@
     position: absolute;
     top: 0;
     left: 0;
+}
+
+.scene-popover {    /* シーン記録のポップオーバー */
+    max-width: 300px;  /* シーン記録のポップオーバーは幅を広げる */
+    word-wrap: break-word;  /* 長い文章を折り返し */
 }
