@@ -257,11 +257,11 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- 発言者選択（選択済みユーザーから） -->
+                            <!-- 発言者選択（ラジオボタン） -->
                             <div class="mb-3">
                                 <label class="form-label">発言者：</label>
                                 <div id="speakerCheckboxes">
-                                    <!-- 動的に追加されるチェックボックス -->
+                                    <!-- 発言者追加 -->
                                 </div>
                             </div>
                             <!-- コメント入力欄 -->

@@ -30,30 +30,16 @@ class FeedbackManager {
             ],
             formatter: feedback => `
                 <tr>
-                    <td>${Number(feedback.timestamp).toFixed(2)}s</td>
-                    <td>${feedback.speakers ? feedback.speakers.join(', ') : ''}</td>
-                    <td class="text-break position-relative">
-                        ${feedback.comment || ''}
-                        <button class="btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y p-0 mx-1"
-                                onclick="showCommentModal('feedback', {
-                                    mode: 'edit',
-                                    id: ${feedback.id},
-                                    type: 'feedback',
-                                    comment: '${feedback.comment?.replace(/'/g, "\\'") || ''}'
-                                })"
-                                title="コメントを編集">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </td>
-                    <td>
+                    <td class="align-middle">${Number(feedback.timestamp).toFixed(2)}s</td>
+                    <td class="align-middle">${feedback.speaker_names}</td>
+                    <td class="text-break position-relative align-middle py-2">${feedback.comment}</td>
+                    <td class="align-middle">
                         <button class="btn btn-sm btn-outline-danger" 
-                                onclick="TableManager.showDeleteModal('feedback', ${feedback.id})"
-                                title="削除">
+                                onclick="TableManager.showDeleteModal('feedback', ${feedback.id})">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>
-                </tr>
-            `
+                </tr>`
         });
     }
 
@@ -101,7 +87,7 @@ class FeedbackManager {
      */
     async getFeedbacks() {
         try {
-            const response = await fetch('./coordinate/php/get_feedbacks.php', {
+            const response = await fetch('./coordinate/php/fetch_feedback_data.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ video_id: videoId })

@@ -166,6 +166,23 @@ function initializeControls() {
     if (feedbackBtn) {
         feedbackBtn.addEventListener('click', handleFeedbackClick);
     }
+
+    // フィードバックモーダルのキャンセルボタンの処理
+    document.querySelector('#feedbackModal .btn-secondary').addEventListener('click', function() {
+        const modal = document.getElementById('feedbackModal');
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+            // モーダル背景とbody要素のスタイルをクリア
+            document.body.classList.remove('modal-open');
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    });
 }
 
 /**
@@ -831,10 +848,15 @@ function fetchUserList() {
         .then(data => {
             if (data.status === 'success') {
                 allUsers = data.users;
+                // ログインユーザーをデフォルトで選択状態にする
+                if (userId) {  // グローバル変数のuserIdを使用
+                    selectedUsers.add(userId);
+                    userColorAssignments.set(userId, 0);  // 最初の色を割り当て
+                }
                 renderUserSelect();
-                fetchClickData() 
+                fetchClickData();
                 fetchRangeData();
-                fetchSceneData()
+                fetchSceneData();
             }
         })
         .catch(error => {
@@ -1226,7 +1248,7 @@ function displaySceneData(scenes) {
                 <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                     <td>${scene.id}</td>
                     <td>${Number(scene.click_time).toFixed(2)}s</td>
-                    <td class="text-break">${scene.comment || ''}</td>
+                    <td class="text-break ">${scene.comment || ''}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" 
                                 onclick="TableManager.showDeleteModal('scene', ${scene.id})"
@@ -1732,17 +1754,19 @@ function updateSpeakerCheckboxes() {
     const container = document.getElementById('speakerCheckboxes');
     container.innerHTML = '';
     
-    // 選択されているユーザーのチェックボックスを作成
+    // 選択されているユーザーのラジオボタンを作成
     Array.from(selectedUsers).forEach(userId => {
         const user = allUsers.find(u => u.user_id === userId);
         if (user) {
             const div = document.createElement('div');
             div.className = 'form-check';
             div.innerHTML = `
-                <input class="form-check-input speaker-checkbox" 
-                       type="checkbox" 
+                <input class="form-check-input speaker-radio" 
+                       type="radio" 
+                       name="speaker"
                        id="speaker-${userId}" 
-                       value="${userId}">
+                       value="${userId}"
+                       required>
                 <label class="form-check-label" for="speaker-${userId}">
                     ${user.name}
                 </label>
@@ -1755,90 +1779,99 @@ function updateSpeakerCheckboxes() {
 /**
  * フィードバック送信処理
  */
+
 function handleFeedbackSubmit() {
+    // 送信ボタンを取得して無効化
+    const submitButton = document.querySelector('#feedbackModal .btn-primary');
+    submitButton.disabled = true;
+
     const comment = document.getElementById('feedbackInput').value;
     const timestamp = player.getCurrentTime();
     
-    // 選択された発言者を取得
-    const speakers = Array.from(document.querySelectorAll('.speaker-checkbox:checked'))
-        .map(cb => cb.value);
+    // 選択された発言者を取得（1名のみ）
+    const selectedSpeaker = document.querySelector('input[name="speaker"]:checked');
     
     if (!comment.trim()) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
             'コメントを入力してください'
         );
+        submitButton.disabled = false;
         return;
     }
     
-    if (speakers.length === 0) {
+    if (!selectedSpeaker) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
             '発言者を選択してください'
         );
+        submitButton.disabled = false;
         return;
     }
     
     // フィードバックを記録
-    feedbackManager.recordFeedback(timestamp, comment, speakers)
+    feedbackManager.recordFeedback(timestamp, comment, [selectedSpeaker.value])
         .then(() => {
             // モーダルを完全に閉じる
             const modal = document.getElementById('feedbackModal');
             const modalInstance = bootstrap.Modal.getInstance(modal);
             if (modalInstance) {
                 modalInstance.hide();
-                // バックドロップと不要なクラスを削除
+                // モーダル背景とbody要素のスタイルをクリア
                 document.body.classList.remove('modal-open');
                 const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) backdrop.remove();
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
             }
-            
+
             // 入力内容をクリア
             document.getElementById('feedbackInput').value = '';
-            // チェックボックスをクリア
-            document.querySelectorAll('.speaker-checkbox').forEach(cb => {
-                cb.checked = false;
+            document.querySelectorAll('input[name="speaker"]').forEach(radio => {
+                radio.checked = false;
             });
-            
-            // データ更新
-            fetchFeedbackData();
+        })
+        .catch(error => {
+            console.error('フィードバック保存エラー:', error);
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.ERROR,
+                'フィードバックの保存に失敗しました'
+            );
+        })
+        .finally(() => {
+            // 送信ボタンを再度有効化
+            submitButton.disabled = false;
         });
 }
-
 
 /**
  * フィードバックデータの取得
  */
 function fetchFeedbackData() {
-    // リプレイモードがOFFの場合
+    // リプレイモードのチェック
     if (!isReplayEnabled) {
         const container = document.getElementById('feedback-data');
         container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
         return;
     }
 
-    // feedbackManagerが未初期化の場合の処理を追加
-    if (!feedbackManager) {
-        feedbackManager = new FeedbackManager();
-    }
-
-    const postData = {
-        video_id: videoId
-    };
-
-    fetch('./coordinate/php/get_feedbacks.php', {
+    fetch('./coordinate/php/fetch_feedback_data.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData)
+        body: JSON.stringify({ video_id: videoId })
     })
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            feedbackManager.displayFeedbacks(data.feedbacks);
+            feedbackManager.displayFeedbacks(data.feedbacks);  // ここでdataを渡す
         }
     })
     .catch(error => {
         console.error('フィードバックデータの取得失敗:', error);
     });
 }
+
+
 
