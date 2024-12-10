@@ -23,23 +23,43 @@ class FeedbackManager {
     displayFeedbacks(feedbacks) {
         TableManager.displayTable('feedback', feedbacks, {
             columns: [
-                { label: '時間', width: '20%' },
-                { label: '発言者', width: '20%' },
-                { label: 'コメント', width: '50%' },
-                { label: '操作', width: '10%' }
+                { label: '記録時間', width: '15%' },
+                { label: '発言者', width: '25%' },
+                { label: 'コメント', width: '45%' },
+                { label: '操作', width: '15%' }
             ],
-            formatter: feedback => `
-                <tr>
-                    <td class="align-middle">${Number(feedback.timestamp).toFixed(2)}s</td>
-                    <td class="align-middle">${feedback.speaker_names}</td>
-                    <td class="text-break position-relative align-middle py-2">${feedback.comment}</td>
-                    <td class="align-middle">
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="TableManager.showDeleteModal('feedback', ${feedback.id})">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>`
+            feedbackFormatter: (item, cursorStyle, color) => {
+                const speaker = allUsers.find(user => user.user_id === item.speaker_id);
+                const speakerDisplay = speaker ? speaker.name : `ID: ${item.speaker_id || '---'}`;
+                
+                return `
+                    <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
+                        <td class="clickable-cell align-middle" 
+                            style="${cursorStyle}"
+                            data-time="${item.timestamp}"
+                            onclick="TableManager.handleTimeClick(event, ${item.timestamp})">
+                            ${Number(item.timestamp).toFixed(2)}s</td>
+                        <td class="align-middle">${speakerDisplay}</td>
+                        <td class="text-break align-middle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="me-2">${item.comment || ''}</span>
+                                <button class="btn btn-sm btn-link p-0"
+                                        onclick="TableManager.showCommentEditModal('feedback', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
+                                        title="コメントを編集">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="TableManager.showDeleteModal('feedback', ${item.id})"
+                                    title="削除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
         });
     }
 
@@ -74,7 +94,7 @@ class FeedbackManager {
                 throw new Error(data.message || '保存に失敗しました');
             }
         } catch (error) {
-            console.error('保存エラー:', error);
+            console.error('保存エラー:', error);    // エラー出力
             ErrorManager.showError(
                 ErrorManager.ErrorTypes.ERROR,
                 ErrorManager.Messages.FEEDBACK_ERROR

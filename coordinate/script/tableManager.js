@@ -34,7 +34,7 @@ class TableManager {
         const table = document.createElement('table');
         table.className = 'table table-hover';
         
-        // ヘッダー部分は変更なし
+        // ヘッダー部分
         const thead = document.createElement('thead');
         thead.className = 'table-light';
         thead.innerHTML = `
@@ -46,7 +46,7 @@ class TableManager {
         `;
         table.appendChild(thead);
         
-        // ボディ部分を更新
+        // ボディ部分
         const tbody = document.createElement('tbody');
         if (!data || data.length === 0) {
             tbody.innerHTML = `
@@ -61,25 +61,33 @@ class TableManager {
                 const colorIndex = userColorAssignments.get(item.user_id);
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
                 
-                // リプレイモードに応じたスタイル定義
                 const cursorStyle = isReplayEnabled ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.6;';
                 
+                // type が 'feedback' の場合は専用のフォーマッターを使用
+                if (type === 'feedback' && options.feedbackFormatter) {
+                    return options.feedbackFormatter(item, cursorStyle, color);
+                }
+
+                // 既存の表示形式（変更なし）
                 return `
                     <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                        <td class="clickable-cell" 
+                        <td class="clickable-cell align-middle" 
                             style="${cursorStyle}"
                             data-time="${item.click_time}"
-                            onclick="TableManager.handleTimeClick(event, ${item.click_time})">${item.id}</td>
-                        <td>${Number(item.click_time).toFixed(2)}s</td>
-                        <td class="text-break d-flex justify-content-between align-items-center">
-                            <div class="me-2">${item.comment || ''}</div>
-                            <button class="btn btn-sm btn-link p-0"
-                                    onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
-                                    title="コメントを編集">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                            onclick="TableManager.handleTimeClick(event, ${item.click_time})">
+                            ${item.id}</td>
+                        <td class="align-middle">${Number(item.click_time).toFixed(2)}s</td>
+                        <td class="text-break align-middle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="me-2">${item.comment || ''}</span>
+                                <button class="btn btn-sm btn-link p-0"
+                                        onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
+                                        title="コメントを編集">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
                         </td>
-                        <td>
+                        <td class="align-middle">
                             <button class="btn btn-sm btn-outline-danger"
                                     onclick="TableManager.showDeleteModal('${type}', ${item.id})"
                                     title="削除">
