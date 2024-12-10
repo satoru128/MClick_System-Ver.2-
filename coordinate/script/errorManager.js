@@ -95,7 +95,9 @@ class ErrorManager {
         COMMENT_REQUIRED: 'コメントを入力してください',
         COMMENT_UPDATED: 'コメントを更新しました',
         COMMENT_SAVED: 'コメントを保存しました',
-        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました'
+        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました',
+        JUMP_ERROR: 'リプレイモード時のみジャンプ可能です',
+        FEEDBACK_ERROR: '保存に失敗しました',
     };
 }
 

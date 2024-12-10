@@ -219,3 +219,36 @@
     max-width: 300px;  /* シーン記録のポップオーバーは幅を広げる */
     word-wrap: break-word;  /* 長い文章を折り返し */
 }
+
+
+/**
+* テーブルのNo.セルのスタイル
+*/  
+.clickable-cell {/* クリック可能なセルのスタイル */
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    padding-left: 25px !important; /* アイコン用のスペース */
+}
+
+.clickable-cell::before {/* 再生アイコン */
+    content: "▶";
+    position: absolute;
+    left: 8px;
+    font-size: 0.8em;
+    opacity: 0.6;
+}
+
+.clickable-cell:hover {/* ホバー時の効果 */
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.clickable-cell.disabled {/* リプレイモード無効時のスタイル */
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.clickable-cell:active {    /* クリック時の効果 */
+    background-color: rgba(0, 0, 0, 0.12);
+}

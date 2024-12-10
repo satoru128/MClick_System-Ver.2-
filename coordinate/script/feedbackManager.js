@@ -77,7 +77,7 @@ class FeedbackManager {
             console.error('保存エラー:', error);
             ErrorManager.showError(
                 ErrorManager.ErrorTypes.ERROR,
-                '保存に失敗しました'
+                ErrorManager.Messages.FEEDBACK_ERROR
             );
         }
     }

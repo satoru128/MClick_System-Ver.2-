@@ -798,24 +798,6 @@ function handleUserCheckboxChange(e) {
 }
 
 //===========================================
-// リプレイするアノテーションの種類選択用ドロップダウン
-//===========================================
-/**
- * リプレイ表示設定の初期化（replay.jsに移動）
- */
-// function initializeReplaySettings() {
-//     // チェックボックスの状態変更時の処理
-//     ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
-//         document.getElementById(id).addEventListener('change', function(e) {
-//             if (replayManager && replayManager.isReplayActive) {
-//                 replayManager.updateAnnotationVisibility(id, e.target.checked);
-//             }
-//         });
-//     });
-// }
-
-
-//===========================================
 // テーブルに表示するユーザーの選択用処理
 //===========================================
 /**
@@ -1674,17 +1656,22 @@ function handleReplayChange(event) {
     isReplayEnabled = event.target.checked;
     replayManager.isReplayActive = isReplayEnabled;
 
+    isReplayEnabled = event.target.checked;
+    replayManager.isReplayActive = isReplayEnabled;
+
     if (isReplayEnabled) {
         replayManager.initializeReplay();
-        // リプレイモード開始時にフィードバックデータを取得
         fetchFeedbackData();
+        // 各テーブルを更新
+        fetchClickData();
+        fetchRangeData();
+        fetchSceneData();
     } else {
         replayManager.finishReplay();
-        // リプレイモード終了時にメッセージを表示
-        const container = document.getElementById('feedback-data');
-        if (container) {
-            container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
-        }
+        // 各テーブルを更新
+        fetchClickData();
+        fetchRangeData();
+        fetchSceneData();
     }
 }
 
