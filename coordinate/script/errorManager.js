@@ -29,6 +29,13 @@ class ErrorManager {
         errorToast.setAttribute('aria-live', 'assertive');
         errorToast.setAttribute('aria-atomic', 'true');
         
+        // スタイルを追加して最上部に固定
+        errorToast.style.position = 'fixed';
+        errorToast.style.top = '20px';  // 上端から20pxの位置
+        errorToast.style.left = '50%';  // 左端から50%の位置
+        errorToast.style.transform = 'translateX(-50%)';  // 中央揃え
+        errorToast.style.zIndex = '9999';  // 最前面に表示
+        
         // Toastの内容を設定
         errorToast.innerHTML = `
             <div class="d-flex">
@@ -68,7 +75,7 @@ class ErrorManager {
     }
 
     /**
-     * よく使うエラーメッセージのテンプレート
+     * エラーメッセージのテンプレート
      */
     static Messages = {
         REPLAY_MODE_OFF: 'リプレイモードを先にオフにしてください',

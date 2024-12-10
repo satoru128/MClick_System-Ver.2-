@@ -803,16 +803,16 @@ function handleUserCheckboxChange(e) {
 /**
  * リプレイ表示設定の初期化（replay.jsに移動）
  */
-function initializeReplaySettings() {
-    // チェックボックスの状態変更時の処理
-    ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function(e) {
-            if (replayManager && replayManager.isReplayActive) {
-                replayManager.updateAnnotationVisibility(id, e.target.checked);
-            }
-        });
-    });
-}
+// function initializeReplaySettings() {
+//     // チェックボックスの状態変更時の処理
+//     ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
+//         document.getElementById(id).addEventListener('change', function(e) {
+//             if (replayManager && replayManager.isReplayActive) {
+//                 replayManager.updateAnnotationVisibility(id, e.target.checked);
+//             }
+//         });
+//     });
+// }
 
 
 //===========================================
@@ -1874,4 +1874,26 @@ function fetchFeedbackData() {
 }
 
 
-
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackModal = document.getElementById('feedbackModal');
+    if (feedbackModal) {
+        // バツボタンの処理を追加
+        const closeButton = feedbackModal.querySelector('.btn-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                const modalInstance = bootstrap.Modal.getInstance(feedbackModal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                    // モーダル背景とbody要素のスタイルをクリア
+                    document.body.classList.remove('modal-open');
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }
+            });
+        }
+    }
+});
