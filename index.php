@@ -108,15 +108,20 @@
                                     <i class="bi bi-chat-right-quote"></i> フィードバック
                                 </button>
                             </div>
-
-                            <!--シークバー-->
                             <div>
-                                <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
-                                <input type="range" class="form-range" id="seekBar" value="0" max="100">
-                            </div>
-                            <!-- ヒートマップエリア -->
-                            <div id="heatmapArea" style="display: none;">
-                                <canvas id="heatmapChart"></canvas>
+                                <!-- 波線グラフエリア -->
+                                <div id="waveArea" style="display: none;">
+                                    <canvas id="waveChart"></canvas>
+                                </div>
+                                <!-- シークバー -->
+                                <div>
+                                    <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
+                                    <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                                </div>
+                                <!-- ヒートマップエリア -->
+                                <div id="heatmapArea" style="display: none;">
+                                    <canvas id="heatmapChart"></canvas>
+                                </div>
                             </div>
                             <!--再生速度-->
                             <div>
@@ -150,14 +155,6 @@
                                         <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
                                         <label class="form-check-label" for="heatmapToggle">ヒートマップ</label>
                                     </div>
-                                    <!-- 拡大ボタン -->
-                                    <button id="expandHeatmapBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
-                                        <i class="bi bi-arrows-angle-expand"></i>
-                                    </button>
-                                    <!-- 表示ボタン -->
-                                    <button id="showHeatmapBtn" class="btn btn-outline-secondary btn-sm" style="display: none;">
-                                        <i class="bi bi-window"></i> 表示
-                                    </button>
                                 </div>
                             </div>
                             <!-- ヒートマップ表示ボタン -->

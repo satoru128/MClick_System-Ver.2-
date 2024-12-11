@@ -34,18 +34,17 @@ class HeatmapManager {
      */
     handleToggle(event) {
         const heatmapArea = document.getElementById('heatmapArea');
-        const expandBtn = document.getElementById('expandHeatmapBtn');
-        const showBtn = document.getElementById('showHeatmapBtn');
+        const waveArea = document.getElementById('waveArea');
         
         if (event.target.checked) {
+            // 両方のエリアを表示
             heatmapArea.style.display = 'block';
-            expandBtn.style.display = 'inline-block';
-            showBtn.style.display = 'inline-block';
+            waveArea.style.display = 'block';
             this.startUpdating();
         } else {
+            // 両方のエリアを非表示
             heatmapArea.style.display = 'none';
-            expandBtn.style.display = 'none';
-            showBtn.style.display = 'none';
+            waveArea.style.display = 'none';
             this.stopUpdating();
         }
     }
@@ -193,66 +192,90 @@ class HeatmapManager {
      * グラフの描画
      */
     async drawHeatmap() {
-        console.log('drawHeatmap開始'); // デバッグログ
-        const ctx = document.getElementById('heatmapChart').getContext('2d');
-        console.log('コンテキスト取得:', ctx); // デバッグログ
-    
+        // データの取得（共通）
         const rawData = await this.fetchDisplayData();
-        console.log('取得したデータ:', rawData); // デバッグログ
-    
         const chartData = this.processData(rawData);
-        console.log('加工したデータ:', chartData); // デバッグログ
         
-        if (!chartData) {
-            console.log('チャートデータがありません'); // デバッグログ
-            return;
-        }
+        if (!chartData) return;
     
+        // バーチャート（既存のヒートマップ）
+        const barCtx = document.getElementById('heatmapChart').getContext('2d');
         if (this.chart) {
-            console.log('既存のチャートを破棄'); // デバッグログ
             this.chart.destroy();
         }
     
-        try {
-            this.chart = new Chart(ctx, {
-                type: 'bar',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'アノテーション数'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: '動画時間'
-                            }
-                        }
-                    },
-                    plugins: {
+        this.chart = new Chart(barCtx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'アノテーション頻度分布'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: (items) => `時間: ${items[0].label}`,
-                                label: (item) => `${item.dataset.label}: ${item.raw}回`
-                            }
+                            text: '記録数'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '動画時間'
                         }
                     }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '頻度分布'
+                    }
                 }
-            });
-            console.log('チャート作成完了'); // デバッグログ
-        } catch (error) {
-            console.error('チャート作成エラー:', error); // エラーログ
+            }
+        });
+    
+        // 波線チャート
+        const waveCtx = document.getElementById('waveChart').getContext('2d');
+        if (this.waveChart) {
+            this.waveChart.destroy();
         }
+    
+        this.waveChart = new Chart(waveCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: chartData.datasets.map(dataset => ({
+                    ...dataset,
+                    fill: false,
+                    tension: 0.4,  // 曲線を滑らかに（０～１）
+                    borderWidth: 4,  // 線の太さを5に変更（1-10程度で調整可能）
+                    borderColor: dataset.borderColor,   // 線の色を背景色と同じに
+                    backgroundColor: 'transparent'  // 塗りつぶしを完全な透明に
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false  // 凡例を非表示
+                    }
+                },
+                scales: {
+                    y: {
+                        display: false  // Y軸を非表示
+                    },
+                    x: {
+                        display: false  // X軸を非表示
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 0  // ポイントを非表示
+                    }
+                }
+            }
+        });
     }
 
     /**

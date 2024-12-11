@@ -255,10 +255,9 @@
 
 /* ヒートマップ表示用スタイル */
 #heatmapArea {
-    height: 100px;
-    min-height: 100px;
+    height: 300px;  /* 拡大サイズをデフォルトに */
     margin-top: 10px;
-    transition: height 0.3s ease;
+    position: relative;
 }
 
 #heatmapChart { 
@@ -266,9 +265,15 @@
     height: 100%;
 }
 
-
 #heatmapModalChart {    /* モーダル内のグラフスタイル */
     width: 100%;
     height: auto;
     min-height: 400px;
+}
+
+#waveArea { /* 波形表示エリア */
+    height: 40px;  /* シークバーの上に配置するため小さめに */
+    margin-bottom: -10px;  /* シークバーに近づける */
+    position: relative;
+    cursor: pointer;  /* クリッカブルであることを示す */
 }
