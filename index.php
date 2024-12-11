@@ -19,6 +19,7 @@
         <script src="./coordinate/script/feedbackManager.js"></script>
         <script src="./coordinate/script/replayManager.js"></script>    
         <script src="./coordinate/script/tableManager.js"></script>
+        <script src="./coordinate/script/heatmapManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
@@ -113,6 +114,10 @@
                                 <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
                                 <input type="range" class="form-range" id="seekBar" value="0" max="100">
                             </div>
+                            <!-- ヒートマップエリア -->
+                            <div id="heatmapArea" style="display: none;">
+                                <canvas id="heatmapChart"></canvas>
+                            </div>
                             <!--再生速度-->
                             <div>
                                 <label for="speedSlider" class="form-label">再生速度：<span id="currentSpeed">1.0</span>x</label>
@@ -129,16 +134,36 @@
                         <div class="card-body">
                             <h5 class="card-title">アノテーション制御</h5>
                             <div class="d-flex justify-content-between mb-3">
+                                <!-- 既存のトグル -->
                                 <div class="form-check form-switch">
-                                <!-- このチェックボックスが event.target -->
-                                <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
+                                    <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
                                     <label class="form-check-label" for="toggleCoordinateBtn">座標取得</label>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="replayBtn">
                                     <label class="form-check-label" for="replayBtn">リプレイ</label>
                                 </div>
+                                <!-- ヒートマップトグル追加 -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- ヒートマップトグル -->
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
+                                        <label class="form-check-label" for="heatmapToggle">ヒートマップ</label>
+                                    </div>
+                                    <!-- 拡大ボタン -->
+                                    <button id="expandHeatmapBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
+                                        <i class="bi bi-arrows-angle-expand"></i>
+                                    </button>
+                                    <!-- 表示ボタン -->
+                                    <button id="showHeatmapBtn" class="btn btn-outline-secondary btn-sm" style="display: none;">
+                                        <i class="bi bi-window"></i> 表示
+                                    </button>
+                                </div>
                             </div>
+                            <!-- ヒートマップ表示ボタン -->
+                            <button id="expandHeatmapBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
+                                <i class="bi bi-graph-up"></i> ヒートマップを拡大
+                            </button>
                         </div>
                     </div>
 
@@ -328,6 +353,23 @@
                     </div>
                 </div>
             </div>
+            <!-- ヒートマップ表示用モーダル -->
+            <div class="modal fade" id="heatmapModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">アノテーション頻度分布</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <canvas id="heatmapModalChart"></canvas>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- 右クリックメニュー -->
             <div id="customContextMenu" class="context-menu" style="display: none;">
                 <div class="context-menu-header">
@@ -343,6 +385,7 @@
                 </div>
             </div>
         <!--JavaScript-->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     </body>
 </html>

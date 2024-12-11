@@ -5,46 +5,57 @@
  * 指定された動画IDとユーザーIDに基づいて，
  * クリックデータを時系列順に取得する．
  */
-require_once("MYDB.php");
 header('Content-Type: application/json');
+error_reporting(0);
+ini_set('display_errors', 0);
+
+require_once("MYDB.php");
 
 try {
-    // データベースに接続
     $pdo = db_connect();
     
     // POSTデータを取得
-    $input = file_get_contents('php://input');
-    $data = json_decode($input, true);
+    $data = json_decode(file_get_contents('php://input'), true);
+    $video_id = $data['video_id'];
+
+    // ヒートマップ用（複数ユーザー）とその他の機能（単一ユーザー）で分岐
+    if (isset($data['user_ids']) && is_array($data['user_ids'])) {
+        // ヒートマップ用の処理（複数ユーザー）
+        $user_ids = $data['user_ids'];
+        $placeholders = str_repeat('?,', count($user_ids) - 1) . '?';
+        $query = "
+            SELECT id, user_id, x_coordinate, y_coordinate, click_time, comment 
+            FROM click_coordinates 
+            WHERE video_id = ? 
+            AND user_id IN ($placeholders)
+            ORDER BY click_time ASC
+        ";
+        $params = array_merge([$video_id], $user_ids);
+    } else {
+        // 既存機能用の処理（単一ユーザー）
+        $user_id = $data['user_id'];
+        $query = "
+            SELECT id, user_id, x_coordinate, y_coordinate, click_time, comment 
+            FROM click_coordinates 
+            WHERE video_id = ? 
+            AND user_id = ?
+            ORDER BY click_time ASC
+        ";
+        $params = [$video_id, $user_id];
+    }
     
-    // クリックデータを取得
-    $stmt = $pdo->prepare("
-        SELECT 
-            id,
-            x_coordinate AS x,
-            y_coordinate AS y,
-            click_time,
-            comment
-        FROM click_coordinates 
-        WHERE video_id = :video_id 
-        AND user_id = :user_id 
-        ORDER BY click_time ASC
-    ");
-    
-    $stmt->bindParam(':video_id', $data['video_id']);
-    $stmt->bindParam(':user_id', $data['user_id']);
-    $stmt->execute();
-    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
     $clicks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // 結果を返す
     echo json_encode([
         'status' => 'success',
         'clicks' => $clicks
     ]);
-    
 } catch (Exception $e) {
     echo json_encode([
-        'status' => 'error'
+        'status' => 'error',
+        'message' => $e->getMessage()
     ]);
 }
 ?>

@@ -252,3 +252,23 @@
 .clickable-cell:active {    /* クリック時の効果 */
     background-color: rgba(0, 0, 0, 0.12);
 }
+
+/* ヒートマップ表示用スタイル */
+#heatmapArea {
+    height: 100px;
+    min-height: 100px;
+    margin-top: 10px;
+    transition: height 0.3s ease;
+}
+
+#heatmapChart { 
+    width: 100%;
+    height: 100%;
+}
+
+
+#heatmapModalChart {    /* モーダル内のグラフスタイル */
+    width: 100%;
+    height: auto;
+    min-height: 400px;
+}

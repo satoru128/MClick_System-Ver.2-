@@ -16,6 +16,7 @@ let tempSelectionData = null;  // 一時的な選択データを保持
 let popoverStates = new Map();  // ポップオーバーの表示状態を記憶
 let activePopovers = [];     // アクティブなポップオーバーを管理
 let feedbackManager;         // フィードバック機能の管理クラス
+let heatmapManager;         // ヒートマップ機能の管理クラス
 
 // クリック座標表示用の色の定義
 const USER_COLORS = [
@@ -109,6 +110,7 @@ function onPlayerReady(event) {
     initializeTabsAndData();    // タブとデータ表示の初期化
     initializeSpeedControl();   // 再生速度コントロールの初期化
     feedbackManager = new FeedbackManager();  // フィードバック機能の初期化
+    heatmapManager = new HeatmapManager();  // ヒートマップ機能の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -1604,7 +1606,7 @@ function handleExportClick() {
 }
 
 //===========================================
-// モード切り替え（座標取得，リプレイ）
+// モード切り替え（座標取得，リプレイ，ヒートマップ）
 //===========================================
 /**
  * 座標取得切り替え
@@ -1619,6 +1621,14 @@ function handleToggleCoordinateChange(event) {
             event.target
         );
         return;
+    }
+
+    // ヒートマップモードがONの場合は、自動的にOFFにする
+    const heatmapToggle = document.getElementById('heatmapToggle');
+    if (event.target.checked && heatmapToggle.checked) {
+        heatmapToggle.checked = false;
+        // ヒートマップのイベントを発火させて表示を消す
+        heatmapToggle.dispatchEvent(new Event('change'));
     }
 
     player.pauseVideo();
@@ -1676,15 +1686,37 @@ function handleReplayChange(event) {
 }
 
 /**
- * モード管理の状態チェック関数
+ * ヒートマップ切り替え
  */
-function canEnableReplayMode() {
-    return selectedUsers.size > 0;
+function handleHeatmapToggleChange(event) {
+    // 座標取得モードがONの場合は切り替えできない
+    if (event.target.checked && isCoordinateEnabled) {
+        event.target.checked = false;
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.MODE_SWITCH,
+            ErrorManager.Messages.COORDINATE_MODE_OFF,
+            event.target
+        );
+        return;
+    }
+
+    // ヒートマップの表示/非表示を切り替え
+    if (heatmapManager) {
+        heatmapManager.handleToggle(event);
+    }
 }
+
+/**
+ * モード管理の状態チェック関数（削除予定）
+ */
+// function canEnableReplayMode() {
+//     return selectedUsers.size > 0;
+// }
 
 //===========================================
 // 再生速度制御
 //===========================================
+
 /**
  * 再生速度制御の初期化
  */
