@@ -300,10 +300,10 @@ function handleMuteClick() {
         const muteBtn = document.getElementById('muteBtn');
         if (player.isMuted()) {
             player.unMute();
-            muteBtn.textContent = '🔊'; 
+            muteBtn.innerHTML = '<i class="bi bi-volume-up-fill"></i>';
         } else {
             player.mute();
-            muteBtn.textContent = '🔇';
+            muteBtn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
         }
     }
 }

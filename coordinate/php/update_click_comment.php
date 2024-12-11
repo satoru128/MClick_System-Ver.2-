@@ -1,6 +1,6 @@
 <?php
 /**
- * クリック座標のコメント編集用
+ * クリック座標のコメント編集用（不要：削除予定）
  */
 require_once("MYDB.php");
 header('Content-Type: application/json');

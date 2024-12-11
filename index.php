@@ -42,7 +42,12 @@
                     ユーザーID：<?php echo $user_id; ?> | 
                     動画ID：<?php echo $video_id; ?>
                 </div>
-                <a href="./login/logout.php" class="btn btn-outline-light">ログアウト</a>
+                <div>
+                    <button id="exportBtn" class="btn btn-outline-light me-2">
+                        <i class="bi bi-download"></i> エクスポート
+                    </button>
+                    <a href="./login/logout.php" class="btn btn-outline-light">ログアウト</a>
+                </div>
             </div>
         </nav>
 
@@ -66,19 +71,41 @@
                             <!--動画下のコントロール-->
                             <div class="mb-3">
                                 <div class="btn-group" role="group">
-                                    <button id="playBtn" class="btn btn-primary">再生</button>
-                                    <button id="pauseBtn" class="btn btn-primary">一時停止</button>
-                                    <button id="stopBtn" class="btn btn-primary">停止</button>
+                                    <!-- 再生/一時停止/停止ボタン -->
+                                    <button id="playBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-pause-fill"></i>
+                                    </button>
+                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-stop-fill"></i>
+                                    </button>
                                 </div>
-                                <button id="muteBtn" class="btn btn-info mx-2">🔊</button>
+                                <!-- ミュートボタン -->
+                                <button id="muteBtn" class="btn btn-info mx-2">
+                                    <i class="bi bi-volume-up-fill"></i>
+                                </button>
+
+                                <!-- 早送り/巻き戻しボタン -->
                                 <div class="btn-group">
-                                    <button id="rewindBtn" class="btn btn-outline-primary">◀◀ 10秒</button>
-                                    <button id="skipBtn" class="btn btn-outline-primary">10秒 ▶▶</button>
+                                    <button id="rewindBtn" class="btn btn-outline-primary">
+                                        <i class="bi bi-skip-backward-fill"></i> 10秒
+                                    </button>
+                                    <button id="skipBtn" class="btn btn-outline-primary">
+                                        10秒 <i class="bi bi-skip-forward-fill"></i>
+                                    </button>
                                 </div>
-                                <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
-                                <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
-                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">フィードバック</button>
-                                <button id="exportBtn" class="btn btn-success">エクスポート</button>
+                                <!-- その他のボタン -->
+                                <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">
+                                    <i class="bi bi-chat-square-text"></i> コメント
+                                </button>
+                                <button id="mistakeBtn" class="btn btn-warning mx-2">
+                                    <i class="bi bi-x-circle"></i> 取消
+                                </button>
+                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">
+                                    <i class="bi bi-chat-right-quote"></i> フィードバック
+                                </button>
                             </div>
 
                             <!--シークバー-->

@@ -68,7 +68,7 @@ class TableManager {
                     return options.feedbackFormatter(item, cursorStyle, color);
                 }
 
-                // 既存の表示形式（変更なし）
+                // 既存の表示形式
                 return `
                     <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                         <td class="clickable-cell align-middle" 
