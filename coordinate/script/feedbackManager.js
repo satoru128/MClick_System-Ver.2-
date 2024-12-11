@@ -23,7 +23,7 @@ class FeedbackManager {
     displayFeedbacks(feedbacks) {
         TableManager.displayTable('feedback', feedbacks, {
             columns: [
-                { label: '記録時間', width: '15%' },
+                { label: '', width: '15%' },
                 { label: '発言者', width: '25%' },
                 { label: 'コメント', width: '45%' },
                 { label: '操作', width: '15%' }

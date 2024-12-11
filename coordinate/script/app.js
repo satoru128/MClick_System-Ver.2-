@@ -108,7 +108,7 @@ function onPlayerReady(event) {
     initializeUserSelect(); // ユーザー選択機能の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
-    initializeSpeedControl();   // 再生速度コントロールの初期化
+    // initializeSpeedControl();   // 再生速度コントロールの初期化
     feedbackManager = new FeedbackManager();  // フィードバック機能の初期化
     heatmapManager = new HeatmapManager();  // ヒートマップ機能の初期化
 }
@@ -343,6 +343,16 @@ function handleSeekBarInput(event) {
     if (player) {
         const time = player.getDuration() * (event.target.value / 100);
         player.seekTo(time, true);
+    }
+}
+
+/**
+ * 再生速度コントロールボタン
+ */
+function changePlaybackSpeed(speed) {
+    if (player) {
+        player.setPlaybackRate(speed);
+        document.getElementById('currentSpeed').textContent = speed.toFixed(2);
     }
 }
 
@@ -1082,9 +1092,9 @@ function displayClickData(clicks) {
     TableManager.displayTable('click', clicks, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '20%' },
+            { label: '時間', width: '15%' },
             { label: 'コメント', width: '60%' },
-            { label: '操作', width: '10%' }
+            { label: '操作', width: '15%' }
         ],
         formatter: click => {
             // ユーザーの色を取得
@@ -1151,9 +1161,9 @@ function displayRangeData(ranges) {
     TableManager.displayTable('range', ranges, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '20%' },
+            { label: '時間', width: '15%' },
             { label: 'コメント', width: '60%' },
-            { label: '操作', width: '10%' }
+            { label: '操作', width: '15%' }
         ],
         formatter: range => {
             // ユーザーの色を取得
@@ -1219,9 +1229,9 @@ function displaySceneData(scenes) {
     TableManager.displayTable('scene', scenes, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '20%' },
+            { label: '時間', width: '15%' },
             { label: 'コメント', width: '60%' },
-            { label: '操作', width: '10%' }
+            { label: '操作', width: '15%' }
         ],
         formatter: scene => {
             // ユーザーの色を取得
@@ -1717,42 +1727,33 @@ function handleHeatmapToggleChange(event) {
     }
 }
 
+
 /**
- * モード管理の状態チェック関数（削除予定）
+ * 再生速度制御の初期化（未使用）
  */
-// function canEnableReplayMode() {
-//     return selectedUsers.size > 0;
+// function initializeSpeedControl() {
+//     const speedSlider = document.getElementById('speedSlider');
+//     const currentSpeedDisplay = document.getElementById('currentSpeed');
+
+//     // スライダーの値が変更されたときの処理
+//     speedSlider.addEventListener('input', function(e) {
+//         const speed = parseFloat(this.value);
+//         currentSpeedDisplay.textContent = speed.toFixed(2);
+//     });
+
+//     // スライダーの操作が完了したときの処理
+//     speedSlider.addEventListener('change', function(e) {
+//         const speed = parseFloat(this.value);
+//         if (player) {
+//             player.setPlaybackRate(speed);
+//         }
+//     });
 // }
-
-//===========================================
-// 再生速度制御
-//===========================================
-
-/**
- * 再生速度制御の初期化
- */
-function initializeSpeedControl() {
-    const speedSlider = document.getElementById('speedSlider');
-    const currentSpeedDisplay = document.getElementById('currentSpeed');
-
-    // スライダーの値が変更されたときの処理
-    speedSlider.addEventListener('input', function(e) {
-        const speed = parseFloat(this.value);
-        currentSpeedDisplay.textContent = speed.toFixed(2);
-    });
-
-    // スライダーの操作が完了したときの処理
-    speedSlider.addEventListener('change', function(e) {
-        const speed = parseFloat(this.value);
-        if (player) {
-            player.setPlaybackRate(speed);
-        }
-    });
-}
 
 //===========================================
 // フィードバック機能
 //===========================================
+
 /**
  * フィードバックボタンのクリックハンドラ
  */

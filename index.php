@@ -73,13 +73,13 @@
                             <div class="mb-3">
                                 <div class="btn-group" role="group">
                                     <!-- 再生/一時停止/停止ボタン -->
-                                    <button id="playBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="playBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-play-fill"></i>
                                     </button>
-                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-pause-fill"></i>
                                     </button>
-                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-stop-fill"></i>
                                     </button>
                                 </div>
@@ -101,17 +101,30 @@
                                 <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">
                                     <i class="bi bi-chat-square-text"></i> コメント
                                 </button>
-                                <button id="mistakeBtn" class="btn btn-warning mx-2">
+                                <button id="mistakeBtn" class="btn btn-warning ">
                                     <i class="bi bi-x-circle"></i> 取消
                                 </button>
                                 <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">
-                                    <i class="bi bi-chat-right-quote"></i> フィードバック
+                                    <i class="bi bi-chat-right-quote"></i> <!-- フィードバック -->
                                 </button>
+                                <!-- 再生速度 -->
+                                <div class="dropdown" style="display: inline-block;">
+                                    <button class="btn btn-info mx-2 dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-speedometer2"></i> <!-- 再生速度 -->: <span id="currentSpeed">1.0</span>x
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="speedDropdown">
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(0.25)">0.25x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(0.5)">0.5x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(1.0)">1.0x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(1.5)">1.5x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(2.0)">2.0x</a></li>
+                                    </ul>
+                                </div>
                             </div>
                             <div>
                                 <!-- シークバー -->
                                 <div>
-                                    <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
+                                    <label for="seekBar" class="form-label">再生時間：<span id="timeDisplay">00:00 / 00:00</span></label>
                                     <div class="seekbar-container">
                                         <!-- 波グラフエリア -->
                                         <div id="waveArea" style="display: none;">
@@ -124,11 +137,6 @@
                                 <div id="heatmapArea" style="display: none;">
                                     <canvas id="heatmapChart"></canvas>
                                 </div>
-                            </div>
-                            <!--再生速度-->
-                            <div>
-                                <label for="speedSlider" class="form-label">再生速度：<span id="currentSpeed">1.0</span>x</label>
-                                <input type="range" class="form-range" id="speedSlider" min="0.25" max="2" step="0.25" value="1">
                             </div>
                         </div>
                     </div>
