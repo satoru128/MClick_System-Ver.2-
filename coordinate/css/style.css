@@ -9,21 +9,17 @@
     height: 360px;
     overflow: hidden;
     border: 3px solid transparent;  /* 初期状態の透明なボーダー */
+    margin: 0 auto;  /* 動画を中央に */
 }
 
-/* 動画とコントロールの中央寄せ */
-.video-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
+/* コントロールボタンのコンテナ */
 .control-container {
     display: flex;
-    justify-content: center;
-    gap: 10px;  /* ボタン間の間隔 */
-    width: 100%;
-    margin-top: 10px;
+    justify-content: center;  /* 水平方向の中央寄せ */
+    align-items: center;      /* 垂直方向の中央寄せ */
+    flex-wrap: wrap;         /* 必要に応じて折り返し */
+    gap: 10px;              /* ボタン間の間隔 */
+    margin: 10px 0;         /* 上下の余白 */
 }
 
 #player {   /* YouTubeプレーヤー */

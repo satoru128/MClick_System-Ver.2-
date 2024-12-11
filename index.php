@@ -70,21 +70,21 @@
                     <div class="card mt-3">
                         <div class="card-body">
                             <!--動画下のコントロール-->
-                            <div class="mb-3">
+                            <div class="control-container">
                                 <div class="btn-group" role="group">
                                     <!-- 再生/一時停止/停止ボタン -->
-                                    <button id="playBtn" class="btn btn-primary" style="min-width: 50px;">
+                                    <button id="playBtn" class="btn btn-primary" style="min-width: 60px;">
                                         <i class="bi bi-play-fill"></i>
                                     </button>
-                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 50px;">
+                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 60px;">
                                         <i class="bi bi-pause-fill"></i>
                                     </button>
-                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 50px;">
+                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 60px;">
                                         <i class="bi bi-stop-fill"></i>
                                     </button>
                                 </div>
                                 <!-- ミュートボタン -->
-                                <button id="muteBtn" class="btn btn-info mx-2">
+                                <button id="muteBtn" class="btn btn-info">
                                     <i class="bi bi-volume-up-fill"></i>
                                 </button>
 
@@ -97,20 +97,22 @@
                                         10秒 <i class="bi bi-skip-forward-fill"></i>
                                     </button>
                                 </div>
+
                                 <!-- その他のボタン -->
-                                <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">
+                                <button id="commentBtn" class="btn btn-info" onclick="showCommentModal('coordinate')">
                                     <i class="bi bi-chat-square-text"></i> コメント
                                 </button>
-                                <button id="mistakeBtn" class="btn btn-warning ">
+                                <button id="mistakeBtn" class="btn btn-warning">
                                     <i class="bi bi-x-circle"></i> 取消
                                 </button>
-                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">
-                                    <i class="bi bi-chat-right-quote"></i> <!-- フィードバック -->
+                                <button id="feedbackBtn" class="btn btn-success" disabled onclick="handleFeedbackClick()">
+                                    <i class="bi bi-chat-right-quote"></i>
                                 </button>
+                                
                                 <!-- 再生速度 -->
-                                <div class="dropdown" style="display: inline-block;">
-                                    <button class="btn btn-info mx-2 dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-speedometer2"></i> <!-- 再生速度 -->: <span id="currentSpeed">1.0</span>x
+                                <div class="dropdown">
+                                    <button class="btn btn-info dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-speedometer2"></i> <span id="currentSpeed">1.0</span>x
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="speedDropdown">
                                         <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(0.25)">0.25x</a></li>
