@@ -19,7 +19,7 @@ class HeatmapManager {
     }
 
     /**
-     * 表示設定の取得（リプレイと同じ設定を使用）
+     * 表示設定の取得
      */
     getDisplaySettings() {
         return {
@@ -54,13 +54,17 @@ class HeatmapManager {
      */
     async fetchDisplayData() {
         const settings = this.getDisplaySettings();
-        console.log('表示設定:', settings); // デバッグ：表示設定の確認
-        console.log('選択中ユーザー:', selectedUsers); // デバッグ：選択ユーザーの確認
         const data = [];
     
+        // ユーザーが選択されていない場合のエラーメッセージ
         if (selectedUsers.size === 0) {
             console.log('選択されているユーザーがいません'); // デバッグ
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.HEATMAP, 
+                ErrorManager.Messages.NO_USER_SELECTED
+            );
             return null;
+            // return false;
         }
     
         try {
@@ -263,7 +267,9 @@ class HeatmapManager {
                 },
                 scales: {
                     y: {
-                        display: false  // Y軸を非表示
+                        display: false,     // Y軸を非表示
+                        suggestedMin: 0,    // 最小値
+                        suggestedMax: 10    // 最大値
                     },
                     x: {
                         display: false  // X軸を非表示

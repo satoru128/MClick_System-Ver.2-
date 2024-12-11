@@ -109,16 +109,18 @@
                                 </button>
                             </div>
                             <div>
-                                <!-- 波線グラフエリア -->
-                                <div id="waveArea" style="display: none;">
-                                    <canvas id="waveChart"></canvas>
-                                </div>
                                 <!-- シークバー -->
                                 <div>
                                     <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
-                                    <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                                    <div class="seekbar-container">
+                                        <!-- 波グラフエリア -->
+                                        <div id="waveArea" style="display: none;">
+                                            <canvas id="waveChart"></canvas>
+                                        </div>
+                                        <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                                    </div>
                                 </div>
-                                <!-- ヒートマップエリア -->
+                                <!-- 棒グラフエリア -->
                                 <div id="heatmapArea" style="display: none;">
                                     <canvas id="heatmapChart"></canvas>
                                 </div>

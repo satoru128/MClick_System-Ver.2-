@@ -8,6 +8,7 @@ class ErrorManager {
     static ErrorTypes = {
         MODE_SWITCH: 'モード切り替え',
         REPLAY: 'リプレイ',
+        HEATMAP: 'ヒートマップ',
         NOTIFICATION: '通知',
         ERROR: 'エラー',
         LIMIT: '制限',
@@ -97,6 +98,7 @@ class ErrorManager {
         COMMENT_SAVED: 'コメントを保存しました',
         COMMENT_ERROR: 'コメントの保存中にエラーが発生しました',
         JUMP_ERROR: 'リプレイモード時のみジャンプ可能です',
+        NO_SPEAKER_SELECTED: '発言者を選択してください',
         FEEDBACK_ERROR: '保存に失敗しました',
     };
 }

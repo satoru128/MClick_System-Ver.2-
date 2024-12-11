@@ -1700,6 +1700,17 @@ function handleHeatmapToggleChange(event) {
         return;
     }
 
+    // ユーザーが選択されていない場合はオンにできない
+    if (event.target.checked && selectedUsers.size === 0) {
+        event.target.checked = false;
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.HEATMAP, 
+            ErrorManager.Messages.NO_USER_SELECTED,
+            event.target
+        );
+        return;
+    }
+
     // ヒートマップの表示/非表示を切り替え
     if (heatmapManager) {
         heatmapManager.handleToggle(event);
@@ -1813,7 +1824,7 @@ function handleFeedbackSubmit() {
     if (!comment.trim()) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
-            'コメントを入力してください'
+            ErrorManager.Messages.COMMENT_REQUIRED
         );
         submitButton.disabled = false;
         return;
@@ -1822,7 +1833,7 @@ function handleFeedbackSubmit() {
     if (!selectedSpeaker) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
-            '発言者を選択してください'
+            ErrorManager.Messages.NO_SPEAKER_SELECTED
         );
         submitButton.disabled = false;
         return;
@@ -1856,7 +1867,7 @@ function handleFeedbackSubmit() {
             console.error('フィードバック保存エラー:', error);
             ErrorManager.showError(
                 ErrorManager.ErrorTypes.ERROR,
-                'フィードバックの保存に失敗しました'
+                ErrorManager.Messages.FEEDBACK_ERROR
             );
         })
         .finally(() => {

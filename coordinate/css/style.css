@@ -254,10 +254,17 @@
 }
 
 /* ヒートマップ表示用スタイル */
-#heatmapArea {
-    height: 300px;  /* 拡大サイズをデフォルトに */
+#heatmapArea {  /* 棒グラフ表示エリア */
+    height: 300px; 
     margin-top: 10px;
     position: relative;
+}
+
+#waveArea { /* 波形表示エリア */
+    height: 40px;   
+    position: absolute;  /* 位置を絶対指定に */
+    width: 100%;
+    z-index: 1;     /* シークバーの上に表示 */
 }
 
 #heatmapChart { 
@@ -276,4 +283,16 @@
     margin-bottom: -10px;  /* シークバーに近づける */
     position: relative;
     cursor: pointer;  /* クリッカブルであることを示す */
+}
+
+/* シークバーのスタイル */
+.seekbar-container {    /* シークバーの親要素 */
+    position: relative;  /* 相対位置指定 */
+    margin-top: 10px;
+}
+
+.form-range {   /* シークバー本体 */
+    position: relative;
+    z-index: 2;     /* 波線グラフの上に表示 */
+    opacity: 0.7;   /* 少し透過させて下のグラフを見やすく */
 }
