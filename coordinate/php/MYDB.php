@@ -1,4 +1,7 @@
 <?php
+error_reporting(0); // または必要最小限のエラー報告に設定
+ini_set('display_errors', 0);
+
 /**
  * データベース接続用の関数
  * 

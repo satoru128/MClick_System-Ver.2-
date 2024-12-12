@@ -34,7 +34,7 @@ class TableManager {
         const table = document.createElement('table');
         table.className = 'table table-hover';
         
-        // ヘッダー部分の生成
+        // ヘッダー部分
         const thead = document.createElement('thead');
         thead.className = 'table-light';
         thead.innerHTML = `
@@ -46,7 +46,7 @@ class TableManager {
         `;
         table.appendChild(thead);
         
-        // ボディ部分の生成
+        // ボディ部分
         const tbody = document.createElement('tbody');
         if (!data || data.length === 0) {
             tbody.innerHTML = `
@@ -61,19 +61,33 @@ class TableManager {
                 const colorIndex = userColorAssignments.get(item.user_id);
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
                 
+                const cursorStyle = isReplayEnabled ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.6;';
+                
+                // type が 'feedback' の場合は専用のフォーマッターを使用
+                if (type === 'feedback' && options.feedbackFormatter) {
+                    return options.feedbackFormatter(item, cursorStyle, color);
+                }
+
+                // 既存の表示形式
                 return `
                     <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
-                        <td>${item.id}</td>
-                        <td>${Number(item.click_time).toFixed(2)}s</td>
-                        <td class="text-break d-flex justify-content-between align-items-center">
-                            <div class="me-2">${item.comment || ''}</div>
-                            <button class="btn btn-sm btn-link p-0"
-                                    onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
-                                    title="コメントを編集">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                        <td class="clickable-cell align-middle" 
+                            style="${cursorStyle}"
+                            data-time="${item.click_time}"
+                            onclick="TableManager.handleTimeClick(event, ${item.click_time})">
+                            ${item.id}</td>
+                        <td class="align-middle">${Number(item.click_time).toFixed(2)}s</td>
+                        <td class="text-break align-middle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="me-2">${item.comment || ''}</span>
+                                <button class="btn btn-sm btn-link p-0"
+                                        onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
+                                        title="コメントを編集">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
                         </td>
-                        <td>
+                        <td class="align-middle">
                             <button class="btn btn-sm btn-outline-danger"
                                     onclick="TableManager.showDeleteModal('${type}', ${item.id})"
                                     title="削除">
@@ -88,6 +102,36 @@ class TableManager {
         
         container.innerHTML = '';
         container.appendChild(table);
+    }
+
+    /**
+     * 時間クリック時のハンドラ
+     * @param {Event} event - クリックイベント
+     * @param {number} time - ジャンプする時間（秒）
+     */
+    static handleTimeClick(event, time) {
+        if (!isReplayEnabled) {
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.NOTIFICATION,
+                ErrorManager.Messages.JUMP_ERROR
+            );
+            return;
+        }
+
+        // イベントの伝播を停止
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 再生位置を変更
+        if (player) {
+            player.seekTo(time);
+            player.pauseVideo();
+
+            // アノテーションの表示を更新
+            if (replayManager) {
+                replayManager.updateDisplay(time);
+            }
+        }
     }
 
     /**

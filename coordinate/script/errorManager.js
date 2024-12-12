@@ -8,6 +8,7 @@ class ErrorManager {
     static ErrorTypes = {
         MODE_SWITCH: 'モード切り替え',
         REPLAY: 'リプレイ',
+        HEATMAP: 'ヒートマップ',
         NOTIFICATION: '通知',
         ERROR: 'エラー',
         LIMIT: '制限',
@@ -28,6 +29,13 @@ class ErrorManager {
         errorToast.setAttribute('role', 'alert');
         errorToast.setAttribute('aria-live', 'assertive');
         errorToast.setAttribute('aria-atomic', 'true');
+        
+        // スタイルを追加して最上部に固定
+        errorToast.style.position = 'fixed';
+        errorToast.style.top = '20px';  // 上端から20pxの位置
+        errorToast.style.left = '50%';  // 左端から50%の位置
+        errorToast.style.transform = 'translateX(-50%)';  // 中央揃え
+        errorToast.style.zIndex = '9999';  // 最前面に表示
         
         // Toastの内容を設定
         errorToast.innerHTML = `
@@ -68,7 +76,7 @@ class ErrorManager {
     }
 
     /**
-     * よく使うエラーメッセージのテンプレート
+     * エラーメッセージのテンプレート
      */
     static Messages = {
         REPLAY_MODE_OFF: 'リプレイモードを先にオフにしてください',
@@ -88,7 +96,10 @@ class ErrorManager {
         COMMENT_REQUIRED: 'コメントを入力してください',
         COMMENT_UPDATED: 'コメントを更新しました',
         COMMENT_SAVED: 'コメントを保存しました',
-        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました'
+        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました',
+        JUMP_ERROR: 'リプレイモード時のみジャンプ可能です',
+        NO_SPEAKER_SELECTED: '発言者を選択してください',
+        FEEDBACK_ERROR: '保存に失敗しました',
     };
 }
 

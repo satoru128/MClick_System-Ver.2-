@@ -19,6 +19,7 @@
         <script src="./coordinate/script/feedbackManager.js"></script>
         <script src="./coordinate/script/replayManager.js"></script>    
         <script src="./coordinate/script/tableManager.js"></script>
+        <script src="./coordinate/script/heatmapManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
     </head>
     <body class="bg-light">
@@ -42,7 +43,12 @@
                     ユーザーID：<?php echo $user_id; ?> | 
                     動画ID：<?php echo $video_id; ?>
                 </div>
-                <a href="./login/logout.php" class="btn btn-outline-light">ログアウト</a>
+                <div>
+                    <button id="exportBtn" class="btn btn-outline-light me-2">
+                        <i class="bi bi-download"></i> エクスポート
+                    </button>
+                    <a href="./login/logout.php" class="btn btn-outline-light">ログアウト</a>
+                </div>
             </div>
         </nav>
 
@@ -64,32 +70,75 @@
                     <div class="card mt-3">
                         <div class="card-body">
                             <!--動画下のコントロール-->
-                            <div class="mb-3">
+                            <div class="control-container">
                                 <div class="btn-group" role="group">
-                                    <button id="playBtn" class="btn btn-primary">再生</button>
-                                    <button id="pauseBtn" class="btn btn-primary">一時停止</button>
-                                    <button id="stopBtn" class="btn btn-primary">停止</button>
+                                    <!-- 再生/一時停止/停止ボタン -->
+                                    <button id="playBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-pause-fill"></i>
+                                    </button>
+                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 60px;">
+                                        <i class="bi bi-stop-fill"></i>
+                                    </button>
                                 </div>
-                                <button id="muteBtn" class="btn btn-info mx-2">🔊</button>
-                                <div class="btn-group">
-                                    <button id="rewindBtn" class="btn btn-outline-primary">◀◀ 10秒</button>
-                                    <button id="skipBtn" class="btn btn-outline-primary">10秒 ▶▶</button>
-                                </div>
-                                <button id="commentBtn" class="btn btn-info mx-2" onclick="showCommentModal('coordinate')">コメント</button>
-                                <button id="mistakeBtn" class="btn btn-warning mx-2">ミス</button>
-                                <button id="feedbackBtn" class="btn btn-success mx-2" disabled onclick="handleFeedbackClick()">フィードバック</button>
-                                <button id="exportBtn" class="btn btn-success">エクスポート</button>
-                            </div>
+                                <!-- ミュートボタン -->
+                                <button id="muteBtn" class="btn btn-info">
+                                    <i class="bi bi-volume-up-fill"></i>
+                                </button>
 
-                            <!--シークバー-->
-                            <div>
-                                <label for="seekBar" class="form-label">再生位置：<span id="timeDisplay">00:00 / 00:00</span></label>
-                                <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                                <!-- 早送り/巻き戻しボタン -->
+                                <div class="btn-group">
+                                    <button id="rewindBtn" class="btn btn-outline-primary">
+                                        <i class="bi bi-skip-backward-fill"></i> 10秒
+                                    </button>
+                                    <button id="skipBtn" class="btn btn-outline-primary">
+                                        10秒 <i class="bi bi-skip-forward-fill"></i>
+                                    </button>
+                                </div>
+
+                                <!-- その他のボタン -->
+                                <button id="commentBtn" class="btn btn-info" onclick="showCommentModal('coordinate')">
+                                    <i class="bi bi-chat-square-text"></i> コメント
+                                </button>
+                                <button id="mistakeBtn" class="btn btn-warning">
+                                    <i class="bi bi-x-circle"></i> 取消
+                                </button>
+                                <button id="feedbackBtn" class="btn btn-success" disabled onclick="handleFeedbackClick()">
+                                    <i class="bi bi-chat-right-quote"></i>
+                                </button>
+                                
+                                <!-- 再生速度 -->
+                                <div class="dropdown">
+                                    <button class="btn btn-info dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-speedometer2"></i> <span id="currentSpeed">1.0</span>x
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="speedDropdown">
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(0.25)">0.25x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(0.5)">0.5x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(1.0)">1.0x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(1.5)">1.5x</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(2.0)">2.0x</a></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <!--再生速度-->
                             <div>
-                                <label for="speedSlider" class="form-label">再生速度：<span id="currentSpeed">1.0</span>x</label>
-                                <input type="range" class="form-range" id="speedSlider" min="0.25" max="2" step="0.25" value="1">
+                                <!-- シークバー -->
+                                <div>
+                                    <label for="seekBar" class="form-label">再生時間：<span id="timeDisplay">00:00 / 00:00</span></label>
+                                    <div class="seekbar-container">
+                                        <!-- 波グラフエリア -->
+                                        <div id="waveArea" style="display: none;">
+                                            <canvas id="waveChart"></canvas>
+                                        </div>
+                                        <input type="range" class="form-range" id="seekBar" value="0" max="100">
+                                    </div>
+                                </div>
+                                <!-- 棒グラフエリア -->
+                                <div id="heatmapArea" style="display: none;">
+                                    <canvas id="heatmapChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -102,16 +151,28 @@
                         <div class="card-body">
                             <h5 class="card-title">アノテーション制御</h5>
                             <div class="d-flex justify-content-between mb-3">
+                                <!-- 既存のトグル -->
                                 <div class="form-check form-switch">
-                                <!-- このチェックボックスが event.target -->
-                                <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
+                                    <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
                                     <label class="form-check-label" for="toggleCoordinateBtn">座標取得</label>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="replayBtn">
                                     <label class="form-check-label" for="replayBtn">リプレイ</label>
                                 </div>
+                                <!-- ヒートマップトグル追加 -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- ヒートマップトグル -->
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
+                                        <label class="form-check-label" for="heatmapToggle">ヒートマップ</label>
+                                    </div>
+                                </div>
                             </div>
+                            <!-- ヒートマップ表示ボタン -->
+                            <button id="expandHeatmapBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
+                                <i class="bi bi-graph-up"></i> ヒートマップを拡大
+                            </button>
                         </div>
                     </div>
 
@@ -257,11 +318,11 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- 発言者選択（選択済みユーザーから） -->
+                            <!-- 発言者選択（ラジオボタン） -->
                             <div class="mb-3">
                                 <label class="form-label">発言者：</label>
                                 <div id="speakerCheckboxes">
-                                    <!-- 動的に追加されるチェックボックス -->
+                                    <!-- 発言者追加 -->
                                 </div>
                             </div>
                             <!-- コメント入力欄 -->
@@ -301,6 +362,23 @@
                     </div>
                 </div>
             </div>
+            <!-- ヒートマップ表示用モーダル -->
+            <div class="modal fade" id="heatmapModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">アノテーション頻度分布</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <canvas id="heatmapModalChart"></canvas>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- 右クリックメニュー -->
             <div id="customContextMenu" class="context-menu" style="display: none;">
                 <div class="context-menu-header">
@@ -316,6 +394,7 @@
                 </div>
             </div>
         <!--JavaScript-->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     </body>
 </html>

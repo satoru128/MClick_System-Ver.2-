@@ -16,6 +16,7 @@ let tempSelectionData = null;  // 一時的な選択データを保持
 let popoverStates = new Map();  // ポップオーバーの表示状態を記憶
 let activePopovers = [];     // アクティブなポップオーバーを管理
 let feedbackManager;         // フィードバック機能の管理クラス
+let heatmapManager;         // ヒートマップ機能の管理クラス
 
 // クリック座標表示用の色の定義
 const USER_COLORS = [
@@ -107,8 +108,9 @@ function onPlayerReady(event) {
     initializeUserSelect(); // ユーザー選択機能の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
-    initializeSpeedControl();   // 再生速度コントロールの初期化
+    // initializeSpeedControl();   // 再生速度コントロールの初期化
     feedbackManager = new FeedbackManager();  // フィードバック機能の初期化
+    heatmapManager = new HeatmapManager();  // ヒートマップ機能の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -166,6 +168,23 @@ function initializeControls() {
     if (feedbackBtn) {
         feedbackBtn.addEventListener('click', handleFeedbackClick);
     }
+
+    // フィードバックモーダルのキャンセルボタンの処理
+    document.querySelector('#feedbackModal .btn-secondary').addEventListener('click', function() {
+        const modal = document.getElementById('feedbackModal');
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+            // モーダル背景とbody要素のスタイルをクリア
+            document.body.classList.remove('modal-open');
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    });
 }
 
 /**
@@ -283,10 +302,10 @@ function handleMuteClick() {
         const muteBtn = document.getElementById('muteBtn');
         if (player.isMuted()) {
             player.unMute();
-            muteBtn.textContent = '🔊'; 
+            muteBtn.innerHTML = '<i class="bi bi-volume-up-fill"></i>';
         } else {
             player.mute();
-            muteBtn.textContent = '🔇';
+            muteBtn.innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
         }
     }
 }
@@ -324,6 +343,16 @@ function handleSeekBarInput(event) {
     if (player) {
         const time = player.getDuration() * (event.target.value / 100);
         player.seekTo(time, true);
+    }
+}
+
+/**
+ * 再生速度コントロールボタン
+ */
+function changePlaybackSpeed(speed) {
+    if (player) {
+        player.setPlaybackRate(speed);
+        document.getElementById('currentSpeed').textContent = speed.toFixed(2);
     }
 }
 
@@ -781,24 +810,6 @@ function handleUserCheckboxChange(e) {
 }
 
 //===========================================
-// リプレイするアノテーションの種類選択用ドロップダウン
-//===========================================
-/**
- * リプレイ表示設定の初期化（replay.jsに移動）
- */
-function initializeReplaySettings() {
-    // チェックボックスの状態変更時の処理
-    ['showClicks', 'showRanges', 'showScenes'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function(e) {
-            if (replayManager && replayManager.isReplayActive) {
-                replayManager.updateAnnotationVisibility(id, e.target.checked);
-            }
-        });
-    });
-}
-
-
-//===========================================
 // テーブルに表示するユーザーの選択用処理
 //===========================================
 /**
@@ -831,10 +842,15 @@ function fetchUserList() {
         .then(data => {
             if (data.status === 'success') {
                 allUsers = data.users;
+                // ログインユーザーをデフォルトで選択状態にする
+                if (userId) {  // グローバル変数のuserIdを使用
+                    selectedUsers.add(userId);
+                    userColorAssignments.set(userId, 0);  // 最初の色を割り当て
+                }
                 renderUserSelect();
-                fetchClickData() 
+                fetchClickData();
                 fetchRangeData();
-                fetchSceneData()
+                fetchSceneData();
             }
         })
         .catch(error => {
@@ -1076,9 +1092,9 @@ function displayClickData(clicks) {
     TableManager.displayTable('click', clicks, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '20%' },
+            { label: '時間', width: '15%' },
             { label: 'コメント', width: '60%' },
-            { label: '操作', width: '10%' }
+            { label: '操作', width: '15%' }
         ],
         formatter: click => {
             // ユーザーの色を取得
@@ -1146,9 +1162,8 @@ function displayRangeData(ranges) {
         columns: [
             { label: 'No.', width: '10%' },
             { label: '時間', width: '15%' },
-            { label: '選択範囲', width: '30%' },
-            { label: 'コメント', width: '35%' },
-            { label: '操作', width: '10%' }
+            { label: 'コメント', width: '60%' },
+            { label: '操作', width: '15%' }
         ],
         formatter: range => {
             // ユーザーの色を取得
@@ -1159,8 +1174,6 @@ function displayRangeData(ranges) {
                 <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                     <td>${range.id}</td>
                     <td>${Number(range.click_time).toFixed(2)}s</td>
-                    <td>X:${Number(range.start_x)} Y:${Number(range.start_y)} 
-                        W:${Number(range.width)} H:${Number(range.height)}</td>
                     <td class="text-break">${range.comment || ''}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" 
@@ -1216,9 +1229,9 @@ function displaySceneData(scenes) {
     TableManager.displayTable('scene', scenes, {
         columns: [
             { label: 'No.', width: '10%' },
-            { label: '時間', width: '20%' },
+            { label: '時間', width: '15%' },
             { label: 'コメント', width: '60%' },
-            { label: '操作', width: '10%' }
+            { label: '操作', width: '15%' }
         ],
         formatter: scene => {
             // ユーザーの色を取得
@@ -1229,7 +1242,7 @@ function displaySceneData(scenes) {
                 <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                     <td>${scene.id}</td>
                     <td>${Number(scene.click_time).toFixed(2)}s</td>
-                    <td class="text-break">${scene.comment || ''}</td>
+                    <td class="text-break ">${scene.comment || ''}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" 
                                 onclick="TableManager.showDeleteModal('scene', ${scene.id})"
@@ -1603,7 +1616,7 @@ function handleExportClick() {
 }
 
 //===========================================
-// モード切り替え（座標取得，リプレイ）
+// モード切り替え（座標取得，リプレイ，ヒートマップ）
 //===========================================
 /**
  * 座標取得切り替え
@@ -1618,6 +1631,14 @@ function handleToggleCoordinateChange(event) {
             event.target
         );
         return;
+    }
+
+    // ヒートマップモードがONの場合は、自動的にOFFにする
+    const heatmapToggle = document.getElementById('heatmapToggle');
+    if (event.target.checked && heatmapToggle.checked) {
+        heatmapToggle.checked = false;
+        // ヒートマップのイベントを発火させて表示を消す
+        heatmapToggle.dispatchEvent(new Event('change'));
     }
 
     player.pauseVideo();
@@ -1655,55 +1676,84 @@ function handleReplayChange(event) {
     isReplayEnabled = event.target.checked;
     replayManager.isReplayActive = isReplayEnabled;
 
+    isReplayEnabled = event.target.checked;
+    replayManager.isReplayActive = isReplayEnabled;
+
     if (isReplayEnabled) {
         replayManager.initializeReplay();
-        // リプレイモード開始時にフィードバックデータを取得
         fetchFeedbackData();
+        // 各テーブルを更新
+        fetchClickData();
+        fetchRangeData();
+        fetchSceneData();
     } else {
         replayManager.finishReplay();
-        // リプレイモード終了時にメッセージを表示
-        const container = document.getElementById('feedback-data');
-        if (container) {
-            container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
-        }
+        // 各テーブルを更新
+        fetchClickData();
+        fetchRangeData();
+        fetchSceneData();
     }
 }
 
 /**
- * モード管理の状態チェック関数
+ * ヒートマップ切り替え
  */
-function canEnableReplayMode() {
-    return selectedUsers.size > 0;
+function handleHeatmapToggleChange(event) {
+    // 座標取得モードがONの場合は切り替えできない
+    if (event.target.checked && isCoordinateEnabled) {
+        event.target.checked = false;
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.MODE_SWITCH,
+            ErrorManager.Messages.COORDINATE_MODE_OFF,
+            event.target
+        );
+        return;
+    }
+
+    // ユーザーが選択されていない場合はオンにできない
+    if (event.target.checked && selectedUsers.size === 0) {
+        event.target.checked = false;
+        ErrorManager.showError(
+            ErrorManager.ErrorTypes.HEATMAP, 
+            ErrorManager.Messages.NO_USER_SELECTED,
+            event.target
+        );
+        return;
+    }
+
+    // ヒートマップの表示/非表示を切り替え
+    if (heatmapManager) {
+        heatmapManager.handleToggle(event);
+    }
 }
 
-//===========================================
-// 再生速度制御
-//===========================================
+
 /**
- * 再生速度制御の初期化
+ * 再生速度制御の初期化（未使用）
  */
-function initializeSpeedControl() {
-    const speedSlider = document.getElementById('speedSlider');
-    const currentSpeedDisplay = document.getElementById('currentSpeed');
+// function initializeSpeedControl() {
+//     const speedSlider = document.getElementById('speedSlider');
+//     const currentSpeedDisplay = document.getElementById('currentSpeed');
 
-    // スライダーの値が変更されたときの処理
-    speedSlider.addEventListener('input', function(e) {
-        const speed = parseFloat(this.value);
-        currentSpeedDisplay.textContent = speed.toFixed(2);
-    });
+//     // スライダーの値が変更されたときの処理
+//     speedSlider.addEventListener('input', function(e) {
+//         const speed = parseFloat(this.value);
+//         currentSpeedDisplay.textContent = speed.toFixed(2);
+//     });
 
-    // スライダーの操作が完了したときの処理
-    speedSlider.addEventListener('change', function(e) {
-        const speed = parseFloat(this.value);
-        if (player) {
-            player.setPlaybackRate(speed);
-        }
-    });
-}
+//     // スライダーの操作が完了したときの処理
+//     speedSlider.addEventListener('change', function(e) {
+//         const speed = parseFloat(this.value);
+//         if (player) {
+//             player.setPlaybackRate(speed);
+//         }
+//     });
+// }
 
 //===========================================
 // フィードバック機能
 //===========================================
+
 /**
  * フィードバックボタンのクリックハンドラ
  */
@@ -1735,17 +1785,19 @@ function updateSpeakerCheckboxes() {
     const container = document.getElementById('speakerCheckboxes');
     container.innerHTML = '';
     
-    // 選択されているユーザーのチェックボックスを作成
+    // 選択されているユーザーのラジオボタンを作成
     Array.from(selectedUsers).forEach(userId => {
         const user = allUsers.find(u => u.user_id === userId);
         if (user) {
             const div = document.createElement('div');
             div.className = 'form-check';
             div.innerHTML = `
-                <input class="form-check-input speaker-checkbox" 
-                       type="checkbox" 
+                <input class="form-check-input speaker-radio" 
+                       type="radio" 
+                       name="speaker"
                        id="speaker-${userId}" 
-                       value="${userId}">
+                       value="${userId}"
+                       required>
                 <label class="form-check-label" for="speaker-${userId}">
                     ${user.name}
                 </label>
@@ -1758,86 +1810,93 @@ function updateSpeakerCheckboxes() {
 /**
  * フィードバック送信処理
  */
+
 function handleFeedbackSubmit() {
+    // 送信ボタンを取得して無効化
+    const submitButton = document.querySelector('#feedbackModal .btn-primary');
+    submitButton.disabled = true;
+
     const comment = document.getElementById('feedbackInput').value;
     const timestamp = player.getCurrentTime();
     
-    // 選択された発言者を取得
-    const speakers = Array.from(document.querySelectorAll('.speaker-checkbox:checked'))
-        .map(cb => cb.value);
+    // 選択された発言者を取得（1名のみ）
+    const selectedSpeaker = document.querySelector('input[name="speaker"]:checked');
     
     if (!comment.trim()) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
-            'コメントを入力してください'
+            ErrorManager.Messages.COMMENT_REQUIRED
         );
+        submitButton.disabled = false;
         return;
     }
     
-    if (speakers.length === 0) {
+    if (!selectedSpeaker) {
         ErrorManager.showError(
             ErrorManager.ErrorTypes.NOTIFICATION,
-            '発言者を選択してください'
+            ErrorManager.Messages.NO_SPEAKER_SELECTED
         );
+        submitButton.disabled = false;
         return;
     }
     
     // フィードバックを記録
-    feedbackManager.recordFeedback(timestamp, comment, speakers)
+    feedbackManager.recordFeedback(timestamp, comment, [selectedSpeaker.value])
         .then(() => {
             // モーダルを完全に閉じる
             const modal = document.getElementById('feedbackModal');
             const modalInstance = bootstrap.Modal.getInstance(modal);
             if (modalInstance) {
                 modalInstance.hide();
-                // バックドロップと不要なクラスを削除
+                // モーダル背景とbody要素のスタイルをクリア
                 document.body.classList.remove('modal-open');
                 const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) backdrop.remove();
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
             }
-            
+
             // 入力内容をクリア
             document.getElementById('feedbackInput').value = '';
-            // チェックボックスをクリア
-            document.querySelectorAll('.speaker-checkbox').forEach(cb => {
-                cb.checked = false;
+            document.querySelectorAll('input[name="speaker"]').forEach(radio => {
+                radio.checked = false;
             });
-            
-            // データ更新
-            fetchFeedbackData();
+        })
+        .catch(error => {
+            console.error('フィードバック保存エラー:', error);
+            ErrorManager.showError(
+                ErrorManager.ErrorTypes.ERROR,
+                ErrorManager.Messages.FEEDBACK_ERROR
+            );
+        })
+        .finally(() => {
+            // 送信ボタンを再度有効化
+            submitButton.disabled = false;
         });
 }
-
 
 /**
  * フィードバックデータの取得
  */
 function fetchFeedbackData() {
-    // リプレイモードがOFFの場合
+    // リプレイモードのチェック
     if (!isReplayEnabled) {
         const container = document.getElementById('feedback-data');
         container.innerHTML = '<p class="text-center">リプレイモード時のみ表示可能です</p>';
         return;
     }
 
-    // feedbackManagerが未初期化の場合の処理を追加
-    if (!feedbackManager) {
-        feedbackManager = new FeedbackManager();
-    }
-
-    const postData = {
-        video_id: videoId
-    };
-
-    fetch('./coordinate/php/get_feedbacks.php', {
+    fetch('./coordinate/php/fetch_feedback_data.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData)
+        body: JSON.stringify({ video_id: videoId })
     })
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            feedbackManager.displayFeedbacks(data.feedbacks);
+            feedbackManager.displayFeedbacks(data.feedbacks);  // ここでdataを渡す
         }
     })
     .catch(error => {
@@ -1845,3 +1904,27 @@ function fetchFeedbackData() {
     });
 }
 
+
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackModal = document.getElementById('feedbackModal');
+    if (feedbackModal) {
+        // バツボタンの処理を追加
+        const closeButton = feedbackModal.querySelector('.btn-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                const modalInstance = bootstrap.Modal.getInstance(feedbackModal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                    // モーダル背景とbody要素のスタイルをクリア
+                    document.body.classList.remove('modal-open');
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }
+            });
+        }
+    }
+});
