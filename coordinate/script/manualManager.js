@@ -147,10 +147,16 @@ class ManualManager {
                                 </tbody>
                             </table>
                         </div>
-
                         <div class="alert alert-info mt-3">
                             <i class="bi bi-info-circle"></i> 
                             座標取得モード：リプレイモードが "オフ" の時のみ使用できます．
+                        </div>
+                        <div class="animation mb-3">
+                            <p class="mb-2">◆ トグル変更例：</p>
+                            <img src="./images/manual/toggleCoordinateBtn.gif" 
+                                alt="左クリックでの記録デモ" 
+                                class="demo-gif border rounded"
+                                style="max-width: 75%; height: auto;">
                         </div>
                     </div>
                 `

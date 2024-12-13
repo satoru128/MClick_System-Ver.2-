@@ -427,3 +427,17 @@
     overflow-y: auto;
     padding-right: 15px;
 }
+
+/* 
+ *GIFのスタイル
+ */
+.animation {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.demo-gif {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 300px;
+}
