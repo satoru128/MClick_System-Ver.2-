@@ -1325,6 +1325,11 @@ function handleMistakeClick() {
             ErrorManager.ErrorTypes.ERROR,
             ErrorManager.Messages.DELETE_ERROR
         );
+    })
+
+    .finally(() => {
+        // ここでボタンを再度有効化する
+        mistakeBtn.disabled = false;
     });
 }
 

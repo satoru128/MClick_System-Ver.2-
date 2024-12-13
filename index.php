@@ -64,10 +64,40 @@
             </div>
         </nav>
 
-        <div class="container mt-3">
+        <div class="container-fluid mt-3">
             <div class="row">
-                <!--左側-->
-                <div class="col-lg-8">
+                <!-- 左側のアノテーション制御 -->
+                <div class="col-lg-1">
+                    <div class="card">
+                        <div class="card-body p-2">
+                            <!-- 座標取得 -->
+                            <div class="control-item text-center mb-3">
+                                <div class="label-text mb-2">座標取得</div>
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
+                                </div>
+                            </div>
+
+                            <!-- リプレイ -->
+                            <div class="control-item text-center mb-3">
+                                <div class="label-text mb-2">リプレイ</div>
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="replayBtn">
+                                </div>
+                            </div>
+
+                            <!-- ヒートマップ -->
+                            <div class="control-item text-center mb-3">
+                                <div class="label-text mb-2">ヒートマップ</div>
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 中央：動画エリア -->
+                <div class="col-lg-7">
                     <!--動画表示とキャンバス-->
                     <div class="card">
                         <div class="card-body">
@@ -85,45 +115,35 @@
                             <div class="control-container">
                                 <div class="btn-group" role="group">
                                     <!-- 再生/一時停止/停止ボタン -->
-                                    <button id="playBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="playBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-play-fill"></i>
                                     </button>
-                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="pauseBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-pause-fill"></i>
                                     </button>
-                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 60px;">
+                                    <button id="stopBtn" class="btn btn-primary" style="min-width: 50px;">
                                         <i class="bi bi-stop-fill"></i>
                                     </button>
                                 </div>
-                                <!-- ミュートボタン -->
-                                <button id="muteBtn" class="btn btn-info">
-                                    <i class="bi bi-volume-up-fill"></i>
-                                </button>
-
+                                
                                 <!-- 早送り/巻き戻しボタン -->
                                 <div class="btn-group">
-                                    <button id="rewindBtn" class="btn btn-outline-primary">
+                                    <button id="rewindBtn" class="btn btn-primary">
                                         <i class="bi bi-skip-backward-fill"></i> 10秒
                                     </button>
-                                    <button id="skipBtn" class="btn btn-outline-primary">
+                                    <button id="skipBtn" class="btn btn btn-primary">
                                         10秒 <i class="bi bi-skip-forward-fill"></i>
                                     </button>
                                 </div>
 
-                                <!-- その他のボタン -->
-                                <button id="commentBtn" class="btn btn-info" onclick="showCommentModal('coordinate')">
-                                    <i class="bi bi-chat-square-text"></i> コメント
+                                <!-- ミュートボタン -->
+                                <button id="muteBtn" class="btn btn-primary">
+                                    <i class="bi bi-volume-up-fill"></i>
                                 </button>
-                                <button id="mistakeBtn" class="btn btn-warning">
-                                    <i class="bi bi-x-circle"></i> 取消
-                                </button>
-                                <button id="feedbackBtn" class="btn btn-success" disabled onclick="handleFeedbackClick()">
-                                    <i class="bi bi-chat-right-quote"></i>
-                                </button>
-                                
+
                                 <!-- 再生速度 -->
                                 <div class="dropdown">
-                                    <button class="btn btn-info dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" id="speedDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-speedometer2"></i> <span id="currentSpeed">1.0</span>x
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="speedDropdown">
@@ -134,6 +154,17 @@
                                         <li><a class="dropdown-item" href="#" onclick="changePlaybackSpeed(2.0)">2.0x</a></li>
                                     </ul>
                                 </div>
+
+                                <!-- その他のボタン -->
+                                <button id="commentBtn" class="btn btn-success" onclick="showCommentModal('coordinate')">
+                                    <i class="bi bi-chat-square-text"></i> コメント
+                                </button>
+                                <button id="feedbackBtn" class="btn btn-success" disabled onclick="handleFeedbackClick()">
+                                    <i class="bi bi-chat-right-quote"></i>
+                                </button>
+                                <button id="mistakeBtn" class="btn btn-warning">
+                                    <i class="bi bi-x-circle"></i> 取消
+                                </button>
                             </div>
                             <div>
                                 <!-- シークバー -->
@@ -158,39 +189,8 @@
 
                 <!--右側-->
                 <div class="col-lg-4">
-                    <!--アノテーション制御-->
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">アノテーション制御</h5>
-                            <div class="d-flex justify-content-between mb-3">
-                                <!-- 座標取得トグル -->
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
-                                    <label class="form-check-label" for="toggleCoordinateBtn">座標取得</label>
-                                </div>
-                                <!-- リプレイトグル -->
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="replayBtn">
-                                    <label class="form-check-label" for="replayBtn">リプレイ</label>
-                                </div>
-                                <!-- ヒートマップトグル追加 -->
-                                <div class="d-flex align-items-center gap-2">
-                                    <!-- ヒートマップトグル -->
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
-                                        <label class="form-check-label" for="heatmapToggle">ヒートマップ</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- ヒートマップ表示ボタン -->
-                            <button id="expandHeatmapBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
-                                <i class="bi bi-graph-up"></i> ヒートマップを拡大
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- データ表示カード内のリプレイ表示設定部分 -->
-                    <div class="card mt-3">
+                    <div class="card">
                         <div class="card-body">
                             <!-- リプレイ表示設定部分を2つに分割 -->
                             <div class="mb-3">
@@ -235,7 +235,7 @@
                                     </ul>
                                 </div>
                                 
-                                <!-- コメント表示設定を分離 -->
+                                <!-- コメント表示設定 -->
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" id="showComments" checked>
                                     <label class="form-check-label" for="showComments">
@@ -300,6 +300,7 @@
                     </div>
                 </div>
             </div>
+        </div>
             
             <!-- コメント入力用モーダル -->
             <div class="modal fade" id="commentModal" tabindex="-1" aria-hidden="true">
@@ -452,7 +453,8 @@
                 <div class="context-menu-item" data-action="scene">
                     <i class="bi bi-camera"></i>シーン記録
                 </div>
-            </div>
+            </div>        
+            
         <!--JavaScript-->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
