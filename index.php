@@ -9,6 +9,8 @@
         <link href="./Bootstrap/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
         <link rel="stylesheet" href="./coordinate/css/style.css">
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <!-- Bootstrap Bundle (JS) -->
         <script src="./Bootstrap/js/bootstrap.bundle.min.js"></script>
         <!-- YouTube API -->
@@ -20,7 +22,13 @@
         <script src="./coordinate/script/replayManager.js"></script>    
         <script src="./coordinate/script/tableManager.js"></script>
         <script src="./coordinate/script/heatmapManager.js"></script>
+        <script src="./coordinate/script/guideManager.js"></script>
+        <script src="./coordinate/script/manualManager.js"></script>
         <script src="./coordinate/script/app.js?v=<?php echo time(); ?>"></script>
+        <!-- Shepherd.js -->
+        <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/css/shepherd.css"/> -->
+        <link rel="stylesheet" href="./shepherd/css/shepherd.css">
+        <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.1.1/dist/js/shepherd.min.js"></script>
     </head>
     <body class="bg-light">
         <?php
@@ -44,6 +52,10 @@
                     動画ID：<?php echo $video_id; ?>
                 </div>
                 <div>
+                    <!-- ヘルプボタン -->
+                    <button id="helpBtn" class="btn btn-outline-light me-2">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
                     <button id="exportBtn" class="btn btn-outline-light me-2">
                         <i class="bi bi-download"></i> エクスポート
                     </button>
@@ -151,11 +163,12 @@
                         <div class="card-body">
                             <h5 class="card-title">アノテーション制御</h5>
                             <div class="d-flex justify-content-between mb-3">
-                                <!-- 既存のトグル -->
+                                <!-- 座標取得トグル -->
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
                                     <label class="form-check-label" for="toggleCoordinateBtn">座標取得</label>
                                 </div>
+                                <!-- リプレイトグル -->
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="replayBtn">
                                     <label class="form-check-label" for="replayBtn">リプレイ</label>
@@ -379,6 +392,53 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ガイド選択モーダル -->
+            <div class="modal fade" id="guideSelectModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">ヘルプガイド</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <p>ガイドの表示方法を選択してください↓</p>
+                            <button id="startTourBtn" class="btn btn-primary m-2">
+                                <i class="bi bi-cursor"></i> 操作ガイド
+                            </button>
+                            <button id="showManualBtn" class="btn btn-info m-2">
+                                <i class="bi bi-book"></i> 詳細マニュアル
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 詳細マニュアルモーダル -->
+            <div class="modal fade" id="manualModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">システム利用マニュアル</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 目次 -->
+                            <div class="help-toc mb-4">
+                                <!-- 動的に挿入 -->
+                            </div>
+                            <!-- マニュアルコンテンツ -->
+                            <div class="manual-content">
+                                <!-- マニュアルが動的に挿入 -->
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="resetModalState()">閉じる</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 右クリックメニュー -->
             <div id="customContextMenu" class="context-menu" style="display: none;">
                 <div class="context-menu-header">
