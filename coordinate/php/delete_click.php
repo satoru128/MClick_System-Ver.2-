@@ -3,6 +3,7 @@
  * クリックデータの削除
  */
 require_once("MYDB.php");
+session_start();  // セッション開始を追加
 header('Content-Type: application/json');
 
 try {
@@ -13,6 +14,20 @@ try {
     
     if (!isset($data['id'])) {
         throw new Exception('ID is required');
+    }
+
+    // 権限チェック：データの所有者確認
+    $stmt = $pdo->prepare("SELECT user_id FROM click_coordinates WHERE id = :id");
+    $stmt->execute([':id' => $data['id']]);
+    $record = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$record) {
+        throw new Exception('データが見つかりません');
+    }
+
+    // ログインユーザーとデータの所有者が一致するか確認
+    if ($record['user_id'] !== $_SESSION['user_id']) {
+        throw new Exception('権限がありません');
     }
 
     // トランザクション開始
