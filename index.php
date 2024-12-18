@@ -72,7 +72,9 @@
                         <div class="card-body p-2">
                             <!-- 座標取得 -->
                             <div class="control-item text-center mb-3">
-                                <div class="label-text mb-2">座標取得</div>
+                                <div class="label-text mb-2">
+                                    <span class="auto-resize-text">座標取得</span>
+                                </div>
                                 <div class="form-check form-switch d-flex justify-content-center">
                                     <input class="form-check-input" type="checkbox" id="toggleCoordinateBtn">
                                 </div>
@@ -80,7 +82,9 @@
 
                             <!-- リプレイ -->
                             <div class="control-item text-center mb-3">
-                                <div class="label-text mb-2">リプレイ</div>
+                                <div class="label-text mb-2">
+                                    <span class="auto-resize-text">リプレイ</span>
+                                </div>
                                 <div class="form-check form-switch d-flex justify-content-center">
                                     <input class="form-check-input" type="checkbox" id="replayBtn">
                                 </div>
@@ -88,9 +92,27 @@
 
                             <!-- ヒートマップ -->
                             <div class="control-item text-center mb-3">
-                                <div class="label-text mb-2">ヒートマップ</div>
+                                <div class="label-text mb-2">
+                                    <span class="auto-resize-text">ヒートマップ</span>
+                                </div>
                                 <div class="form-check form-switch d-flex justify-content-center">
                                     <input class="form-check-input" type="checkbox" id="heatmapToggle" onchange="handleHeatmapToggleChange(event)">
+                                </div>
+                                <!-- 時間間隔設定（初期状態は非表示） -->
+                                <div id="intervalControl" class="mt-2" style="display: none;">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                            <span class="auto-resize-text">間隔<br>
+                                                <!-- <span id="currentInterval">10秒</span> -->
+                                            </span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item heatmap-interval-select" href="#" data-interval="5">5秒</a></li>
+                                            <li><a class="dropdown-item heatmap-interval-select" href="#" data-interval="10">10秒</a></li>
+                                            <li><a class="dropdown-item heatmap-interval-select" href="#" data-interval="30">30秒</a></li>
+                                            <li><a class="dropdown-item heatmap-interval-select" href="#" data-interval="60">1分</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -453,8 +475,8 @@
                 <div class="context-menu-item" data-action="scene">
                     <i class="bi bi-camera"></i>シーン記録
                 </div>
-            </div>        
-            
+            </div>
+
         <!--JavaScript-->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>

@@ -450,6 +450,7 @@
 .control-item {
     border-bottom: 1px solid #eee;
     padding-bottom: 1rem;
+    width: 100%;  /* 親要素の幅いっぱいに */
 }
 
 .control-item:last-child {  /* 同じ親要素を持つ中で，最後の子要素に対して */
@@ -459,13 +460,24 @@
 
 .label-text {
     font-size: 0.9rem;
-    white-space: nowrap;
+    width: 100%;  /* 親要素の幅いっぱいに */
+    /* white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; */
 }
 
-/* トグルスイッチの中央配置 */
-.form-check-input {
+.auto-resize-text {
+    display: inline-block;
+    transform-origin: center;
+    transform: scale(var(--scale, 1)); 
+}
+
+.form-check-input { /* トグルスイッチの中央配置 */
     margin: 0;
     cursor: pointer;
+}
+
+.dropdown-toggle {  /* ドロップダウンボタンのスタイル調整 */
+    position: relative;    /* 位置の基準点 */
+    padding-right: 1.5rem; /* 三角マークのためのスペース */
 }
