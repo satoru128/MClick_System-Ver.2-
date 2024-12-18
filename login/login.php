@@ -36,8 +36,8 @@
                             <div class="mb-3">
                                 <label for="videoSelection" class="form-label">視聴したい動画を選択してください：</label>
                                 <select class="form-select" id="videoSelection" name="video_id">
-                                    <option value="11GgnxEEyXQ">動画1</option>
-                                    <option value="n0tt3meYVkU">動画2</option>
+                                    <option value="n0tt3meYVkU">動画1</option>
+                                    <option value="11GgnxEEyXQ">動画2</option>
                                     <option value="dwk2DTGHjc4">動画3</option>
                                     <!-- ここに他の動画IDを追加 -->
                                 </select>
