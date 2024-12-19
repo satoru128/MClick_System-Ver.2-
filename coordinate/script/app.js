@@ -18,16 +18,33 @@ let activePopovers = [];     // アクティブなポップオーバーを管理
 let feedbackManager;         // フィードバック機能の管理クラス
 let heatmapManager;         // ヒートマップ機能の管理クラス
 let guideManager;  // グローバル変数に追加
-
-// クリック座標表示用の色の定義
-const USER_COLORS = [
-    { bg: 'rgba(255, 200, 200, 0.7)', text: '#000000' }, // 薄い赤
-    { bg: 'rgba(200, 200, 255, 0.7)', text: '#000000' }, // 薄い青
-    { bg: 'rgba(200, 255, 200, 0.7)', text: '#000000' }  // 薄い緑
-];
-let userColorAssignments = new Map(); // ユーザーIDと割り当てられた色の管理用
 let isDrawingRange = false;     //範囲選択アノテーション
-let rangeStartX, rangeStartY;   //範囲選択アノテーション
+let rangeStartX, rangeStartY;   //範囲選択（始点，終点）
+
+//===========================================
+// 色生成用の定数と変数
+//===========================================
+const MAX_USERS = 3;  // 制限したい人数
+
+const USER_COLORS = Array.from({ length: MAX_USERS }, (_, index) => {
+    const hue = (index * 360 / MAX_USERS) % 360;
+    const saturation = 80;
+    const lightness = 85;
+    const alpha = 0.7;
+
+    return {
+        bg: `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`,
+        text: '#000000'
+    };
+});
+
+// ページ読み込み時に人数を設定
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('maxUsers').textContent = MAX_USERS;
+});
+
+let userColorAssignments = new Map(); // ユーザーIDと割り当てられた色の管理用
+
 
 const replayManager = new ReplayManager();  // リプレイデータの管理
 
@@ -770,7 +787,7 @@ function isCommentsAlwaysVisible() {
 function handleUserCheckboxChange(e) {
     if (e.target.checked) {
         // 選択数の制限チェック
-        if (selectedUsers.size >= 3) {
+        if (selectedUsers.size >= MAX_USERS) {
             e.preventDefault();
             e.target.checked = false;
             ErrorManager.showError(
@@ -906,7 +923,7 @@ function renderUserSelect() {
         checkbox.addEventListener('change', function(e) {
             if (e.target.checked) {
                 // 選択数の制限チェック
-                if (selectedUsers.size >= 3) {
+                if (selectedUsers.size >= MAX_USERS) {
                     e.preventDefault();
                     e.target.checked = false;
                     ErrorManager.showError(
@@ -949,7 +966,7 @@ function renderUserSelect() {
  */
 function handleUserSelectionChange(event) {
     if (event.target.checked) {
-        if (selectedUsers.size >= 3) {
+        if (selectedUsers.size >= MAX_USERS) {
             e.preventDefault();
             e.target.checked = false;
             ErrorManager.showError(

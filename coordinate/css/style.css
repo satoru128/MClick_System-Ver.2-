@@ -447,7 +447,7 @@
 /* 
  *アノテーション制御のスタイル 
  */
-.control-item {
+.control-item { 
     border-bottom: 1px solid #eee;
     padding-bottom: 1rem;
     width: 100%;  /* 親要素の幅いっぱいに */
@@ -461,9 +461,6 @@
 .label-text {
     font-size: 0.9rem;
     width: 100%;  /* 親要素の幅いっぱいに */
-    /* white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; */
 }
 
 .auto-resize-text {
@@ -481,3 +478,4 @@
     position: relative;    /* 位置の基準点 */
     padding-right: 1.5rem; /* 三角マークのためのスペース */
 }
+

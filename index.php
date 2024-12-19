@@ -271,7 +271,7 @@
                                 <div class="dropdown">
                                     <button class="btn btn-outline-primary dropdown-toggle" 
                                             type="button" id="userDropdown" data-bs-toggle="dropdown">
-                                        表示するユーザーを選択 (最大3名)
+                                            表示するユーザーを選択（最大<span id="maxUsers"></span>名）
                                     </button>
                                     <ul class="dropdown-menu" id="user-select"></ul>
                                 </div>

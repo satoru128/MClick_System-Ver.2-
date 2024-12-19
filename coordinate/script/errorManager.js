@@ -82,7 +82,7 @@ class ErrorManager {
         REPLAY_MODE_OFF: 'リプレイモードを先にオフにしてください',
         COORDINATE_MODE_OFF: '座標取得モードを先にオフにしてください',
         NO_USER_SELECTED: 'ユーザーを選択してください',
-        MAX_USERS_LIMIT: '最大3名まで選択可能です',
+        MAX_USERS_LIMIT: `ユーザー選択の限度です`,
         ENABLE_COORDINATE_MODE: '座標取得モードをオンにしてください',
         NO_OPERATION_IN_REPLAY: 'リプレイ中は取り消せません',
         FETCH_DATA_ERROR: 'データの取得に失敗しました',
