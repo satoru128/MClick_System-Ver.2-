@@ -17,6 +17,7 @@ let popoverStates = new Map();  // ポップオーバーの表示状態を記憶
 let activePopovers = [];     // アクティブなポップオーバーを管理
 let feedbackManager;         // フィードバック機能の管理クラス
 let heatmapManager;         // ヒートマップ機能の管理クラス
+let guideManager;  // グローバル変数に追加
 
 // クリック座標表示用の色の定義
 const USER_COLORS = [
@@ -108,9 +109,9 @@ function onPlayerReady(event) {
     initializeUserSelect(); // ユーザー選択機能の初期化
     initializeContextMenu(); // 右クリックメニューの初期化
     initializeTabsAndData();    // タブとデータ表示の初期化
-    // initializeSpeedControl();   // 再生速度コントロールの初期化
     feedbackManager = new FeedbackManager();  // フィードバック機能の初期化
     heatmapManager = new HeatmapManager();  // ヒートマップ機能の初期化
+    guideManager = new GuideManager();  // ガイド機能の初期化
 }
 
 function onPlayerStateChange(event) {
@@ -1324,6 +1325,11 @@ function handleMistakeClick() {
             ErrorManager.ErrorTypes.ERROR,
             ErrorManager.Messages.DELETE_ERROR
         );
+    })
+
+    .finally(() => {
+        // ここでボタンを再度有効化する
+        mistakeBtn.disabled = false;
     });
 }
 
@@ -1727,33 +1733,6 @@ function handleHeatmapToggleChange(event) {
     }
 }
 
-
-/**
- * 再生速度制御の初期化（未使用）
- */
-// function initializeSpeedControl() {
-//     const speedSlider = document.getElementById('speedSlider');
-//     const currentSpeedDisplay = document.getElementById('currentSpeed');
-
-//     // スライダーの値が変更されたときの処理
-//     speedSlider.addEventListener('input', function(e) {
-//         const speed = parseFloat(this.value);
-//         currentSpeedDisplay.textContent = speed.toFixed(2);
-//     });
-
-//     // スライダーの操作が完了したときの処理
-//     speedSlider.addEventListener('change', function(e) {
-//         const speed = parseFloat(this.value);
-//         if (player) {
-//             player.setPlaybackRate(speed);
-//         }
-//     });
-// }
-
-//===========================================
-// フィードバック機能
-//===========================================
-
 /**
  * フィードバックボタンのクリックハンドラ
  */
@@ -1928,3 +1907,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+

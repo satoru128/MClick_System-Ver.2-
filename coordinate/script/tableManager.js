@@ -62,6 +62,7 @@ class TableManager {
                 const color = colorIndex !== undefined ? USER_COLORS[colorIndex] : null;
                 
                 const cursorStyle = isReplayEnabled ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.6;';
+                const isOwnData = item.user_id === userId;  // ログインユーザーのデータかチェック
                 
                 // type が 'feedback' の場合は専用のフォーマッターを使用
                 if (type === 'feedback' && options.feedbackFormatter) {
@@ -80,19 +81,23 @@ class TableManager {
                         <td class="text-break align-middle">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="me-2">${item.comment || ''}</span>
-                                <button class="btn btn-sm btn-link p-0"
-                                        onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
-                                        title="コメントを編集">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
+                                ${isOwnData ? `
+                                    <button class="btn btn-sm btn-link p-0"
+                                            onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
+                                            title="コメントを編集">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </td>
                         <td class="align-middle">
-                            <button class="btn btn-sm btn-outline-danger"
-                                    onclick="TableManager.showDeleteModal('${type}', ${item.id})"
-                                    title="削除">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            ${isOwnData ? `
+                                <button class="btn btn-sm btn-outline-danger"
+                                        onclick="TableManager.showDeleteModal('${type}', ${item.id})"
+                                        title="削除">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            ` : ''}
                         </td>
                     </tr>
                 `;
@@ -170,6 +175,7 @@ class TableManager {
     static async executeDelete() {
         const id = document.getElementById('deleteTargetId').value;
         const type = document.getElementById('deleteTargetType').value;
+        console.log('削除開始:', { id, type });  // デバッグ用
         
         try {
             // タイプに応じたエンドポイントを設定

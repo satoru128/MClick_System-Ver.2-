@@ -6,6 +6,7 @@ class HeatmapManager {
         this.chart = null;
         this.modalChart = null;
         this.updateInterval = null;
+        this.interval = 10; // デフォルトの間隔（秒）
         this.initialize();
     }
 
@@ -16,6 +17,31 @@ class HeatmapManager {
         // 拡大ボタンのイベント設定
         const expandBtn = document.getElementById('expandHeatmapBtn');
         expandBtn?.addEventListener('click', this.handleExpand.bind(this));
+
+        // 時間間隔選択のドロップダウンのリスナーを追加
+        document.querySelectorAll('.heatmap-interval-select').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const newInterval = parseInt(e.target.dataset.interval);
+                this.updateTimeInterval(newInterval);
+            });
+        });
+    }
+
+    /**
+     * 時間間隔を更新
+     * @param {number} newInterval - 新しい時間間隔（秒）
+     */
+    updateTimeInterval(newInterval) {
+        this.interval = newInterval;
+        // インターバル表示を更新
+        const intervalText = newInterval >= 60 
+            ? `${newInterval/60}分`
+            : `${newInterval}秒`;
+        document.getElementById('currentInterval').textContent = intervalText;
+        
+        // グラフを再描画
+        this.drawHeatmap();
     }
 
     /**
@@ -35,16 +61,19 @@ class HeatmapManager {
     handleToggle(event) {
         const heatmapArea = document.getElementById('heatmapArea');
         const waveArea = document.getElementById('waveArea');
+        const intervalControl = document.getElementById('intervalControl');
         
         if (event.target.checked) {
-            // 両方のエリアを表示
+            // エリアを表示
             heatmapArea.style.display = 'block';
             waveArea.style.display = 'block';
+            intervalControl.style.display = 'block';  // 間隔設定を表示
             this.startUpdating();
         } else {
-            // 両方のエリアを非表示
+            // エリアを非表示
             heatmapArea.style.display = 'none';
             waveArea.style.display = 'none';
+            intervalControl.style.display = 'none';  // 間隔設定を非表示
             this.stopUpdating();
         }
     }
@@ -142,28 +171,26 @@ class HeatmapManager {
      */
     processData(rawData) {
         if (!rawData || rawData.length === 0) return null;
-
+    
         const duration = player.getDuration();
-        const interval = 10; // 10秒間隔
         const datasets = {};
-
+    
         // ユーザーごとにデータを分類
         Array.from(selectedUsers).forEach(userId => {
             const userData = rawData.filter(item => item.user_id === userId);
-            const data = new Array(Math.ceil(duration / interval)).fill(0);
-
+            const data = new Array(Math.ceil(duration / this.interval)).fill(0);
+    
             userData.forEach(item => {
-                const index = Math.floor(item.time / interval);
+                const index = Math.floor(item.time / this.interval);
                 if (index < data.length) {
                     data[index]++;
                 }
             });
-
-            // ユーザーの色を取得
+    
             const colorIndex = userColorAssignments.get(userId);
             const color = USER_COLORS[colorIndex];
             const user = allUsers.find(u => u.user_id === userId);
-
+    
             datasets[userId] = {
                 label: user ? user.name : userId,
                 data: data,
@@ -172,9 +199,9 @@ class HeatmapManager {
                 borderWidth: 1
             };
         });
-
+    
         return {
-            labels: this.generateTimeLabels(duration, interval),
+            labels: this.generateTimeLabels(duration, this.interval),
             datasets: Object.values(datasets)
         };
     }
