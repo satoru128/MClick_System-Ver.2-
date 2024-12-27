@@ -1536,9 +1536,13 @@ function showCommentModal(type, options = {}) {
     // モーダルが閉じられる時の処理
     modal.addEventListener('hidden.bs.modal', handleModalClose);
 
-    // モーダル表示
-    const commentModal = new bootstrap.Modal(modal);
-    commentModal.show();
+    // 既存のモーダルインスタンスを確認
+    let modalInstance = bootstrap.Modal.getInstance(modal);
+    if (!modalInstance) {
+        // インスタンスが存在しない場合は新規作成
+        modalInstance = new bootstrap.Modal(modal);
+    }
+    modalInstance.show();
 }
 
 /**

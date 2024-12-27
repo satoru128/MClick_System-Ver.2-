@@ -1,3 +1,248 @@
 Array
 (
+    [0] => Array
+        (
+            [id] => 1
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 0
+            [comment] => ｄ
+            [record_time] => 2024-12-20 08:46:34
+            [speaker_id] => 1111
+        )
+
+    [1] => Array
+        (
+            [id] => 2
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 113.689
+            [comment] => 竹が出てくると思った．（矢田貝の記録を探しているときに見つけた）
+            [record_time] => 2024-12-20 14:12:36
+            [speaker_id] => 1109
+        )
+
+    [2] => Array
+        (
+            [id] => 3
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 120.171
+            [comment] => 「とくわかったね」に対して何も思わなかった．特に意識せず聞き流した．
+            [record_time] => 2024-12-20 14:14:48
+            [speaker_id] => 1224
+        )
+
+    [3] => Array
+        (
+            [id] => 4
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 120.171
+            [comment] => 安藤「よく分かったね」に対して抑揚がない．
+            [record_time] => 2024-12-20 14:15:37
+            [speaker_id] => 1109
+        )
+
+    [4] => Array
+        (
+            [id] => 5
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 120.171
+            [comment] => ・何回も練習しているから棒読みになっているのでは？
+・学習者に対して何らかの反応・フィードバックしたほうがいい．なぜなら，（聴衆の）反応がなくなる．
+・実際に生徒がいれば（話す相手がいれば）もっと抑揚のあるリアルな反応ができたかもしれない
+            [record_time] => 2024-12-20 14:18:00
+            [speaker_id] => 5555
+        )
+
+    [5] => Array
+        (
+            [id] => 6
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 121.954
+            [comment] => 「エジソン」が縦文字だから違和感．
+            [record_time] => 2024-12-20 14:20:39
+            [speaker_id] => 1224
+        )
+
+    [6] => Array
+        (
+            [id] => 7
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 121.954
+            [comment] => 縦文字について，特に違和感なし．
+            [record_time] => 2024-12-20 14:20:58
+            [speaker_id] => 5555
+        )
+
+    [7] => Array
+        (
+            [id] => 8
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 137.256
+            [comment] => ホワイトボード左端のものがなにか気になった．
+            [record_time] => 2024-12-20 14:23:19
+            [speaker_id] => 1224
+        )
+
+    [8] => Array
+        (
+            [id] => 9
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 145.916
+            [comment] => 白飛びして見えない
+            [record_time] => 2024-12-20 14:24:22
+            [speaker_id] => 5555
+        )
+
+    [9] => Array
+        (
+            [id] => 10
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 148.451
+            [comment] => 板垣先生の電球についての説明が不十分なのでは？
+            [record_time] => 2024-12-20 14:25:48
+            [speaker_id] => 5555
+        )
+
+    [10] => Array
+        (
+            [id] => 11
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 153.281
+            [comment] => ここに電球があるってことに（板垣先生の電球の説明を聞いて）いま気づいた．
+            [record_time] => 2024-12-20 14:27:03
+            [speaker_id] => 1224
+        )
+
+    [11] => Array
+        (
+            [id] => 12
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 154.164
+            [comment] => ホワイトボードに書いた内容は，事前にパワーポイントで用意しておけば良いのでは？
+            [record_time] => 2024-12-20 14:28:06
+            [speaker_id] => 1109
+        )
+
+    [12] => Array
+        (
+            [id] => 13
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 154.164
+            [comment] => 本質的にはアニメーションで表示したほうが良い．
+板垣先生は，電子黒板を利用してみたいという意図があった
+            [record_time] => 2024-12-20 14:29:48
+            [speaker_id] => 5555
+        )
+
+    [13] => Array
+        (
+            [id] => 14
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 154.164
+            [comment] => 板書の時間を考えるとスライド表示より先生が書いたほうがいい場合もある
+            [record_time] => 2024-12-20 14:31:04
+            [speaker_id] => 5555
+        )
+
+    [14] => Array
+        (
+            [id] => 15
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 235.203
+            [comment] => 何をしているか説明してくれると良いかもしれない
+            [record_time] => 2024-12-20 14:37:11
+            [speaker_id] => 5555
+        )
+
+    [15] => Array
+        (
+            [id] => 16
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 245.542
+            [comment] => このモノの意図がわかっている（この場にいたので）ので，この黒いものに対しては気にならなかった．
+            [record_time] => 2024-12-20 14:38:26
+            [speaker_id] => 5555
+        )
+
+    [16] => Array
+        (
+            [id] => 17
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 274.948
+            [comment] => 手元の映像があっても良い．例えば右のホワイトボードを活用する
+            [record_time] => 2024-12-20 14:40:07
+            [speaker_id] => 5555
+        )
+
+    [17] => Array
+        (
+            [id] => 18
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 331.531
+            [comment] => たしかに，
+            [record_time] => 2024-12-20 14:43:46
+            [speaker_id] => 5555
+        )
+
+    [18] => Array
+        (
+            [id] => 19
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 356.054
+            [comment] => 生徒とのジェネレーションギャップがありそう
+            [record_time] => 2024-12-20 14:45:08
+            [speaker_id] => 5555
+        )
+
+    [19] => Array
+        (
+            [id] => 20
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 378.505
+            [comment] => 黒板：残すメディア
+ホワイトボード：切り替わるメディア
+            [record_time] => 2024-12-20 14:48:29
+            [speaker_id] => 5555
+        )
+
+    [20] => Array
+        (
+            [id] => 21
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 455.48
+            [comment] => カメラの問題かもしれない
+            [record_time] => 2024-12-20 14:51:46
+            [speaker_id] => 5555
+        )
+
+    [21] => Array
+        (
+            [id] => 22
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 592.065
+            [comment] => 言葉があることで理解できた．
+黒板の文字のみでは説明の理解ができない．
+            [record_time] => 2024-12-20 14:57:22
+            [speaker_id] => 1224
+        )
+
+    [22] => Array
+        (
+            [id] => 23
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 596.183
+            [comment] => 先生のユラユラに対して，特に気にならなかった．
+            [record_time] => 2024-12-20 14:58:19
+            [speaker_id] => 1224
+        )
+
+    [23] => Array
+        (
+            [id] => 24
+            [video_id] => n0tt3meYVkU
+            [timestamp] => 621.423
+            [comment] => そうだね．書いても良い
+            [record_time] => 2024-12-20 14:59:52
+            [speaker_id] => 5555
+        )
+
 )
