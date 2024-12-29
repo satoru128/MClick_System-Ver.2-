@@ -14,8 +14,7 @@ function show_top($heading="ユーザー登録一覧") {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{$heading}</title>
         <!-- Bootstrap CSSの読み込み -->
-        <link href="../../Bootstrap/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="styles.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     </head>
     <body class="bg-light">
         <div class="container mt-5">
@@ -38,7 +37,7 @@ function show_bottom($return_top=false) {
         </div>
         <!-- Bootstrap JSの読み込み -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="../../Bootstrap/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script>
         window.onpageshow = function(event) {
             if (event.persisted) {
