@@ -328,6 +328,35 @@
     z-index: 1;
 }
 
+/* 
+ *テーブルのコメント表示のスタイル 
+ */
+.comment-container {
+    position: relative;
+    display: inline;
+    overflow-wrap: break-word;
+}
+
+.short-text, .full-text {
+    display: inline;
+    overflow-wrap: break-word;
+}
+
+.toggle-btn {
+    font-size: 0.75rem;
+    color: #0d6efd;
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 0;
+    background: none;
+    border: none;
+    line-height: 1;
+}
+
+.toggle-btn:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
 
 
 /* 

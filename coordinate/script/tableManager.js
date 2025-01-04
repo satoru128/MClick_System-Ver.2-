@@ -21,6 +21,61 @@ class TableManager {
     }
 
     /**
+     * コメントを省略する関数
+     * @param {string} comment - 元のコメント
+     * @param {number} maxLength - 最大表示文字数
+     * @returns {Object} 処理されたコメント情報
+     */
+    static truncateComment(comment, maxLength = 25) {
+        if (!comment) return {
+            text: '',
+            isLong: false,
+            fullText: ''
+        };
+        
+        if (comment.length <= maxLength) return {
+            text: comment,
+            isLong: false,
+            fullText: comment
+        };
+        
+        return {
+            text: `${comment.substring(0, maxLength)}...`,
+            isLong: true,
+            fullText: comment
+        };
+    }
+
+    /**
+     * コメントの展開・折りたたみを処理する関数
+     * @param {string} commentId - コメント要素のID
+     * @param {Event} event - クリックイベント
+     */
+    static toggleComment(commentId, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const commentContainer = document.getElementById(commentId);
+        if (!commentContainer) return;
+
+        const shortText = commentContainer.querySelector('.short-text');
+        const fullText = commentContainer.querySelector('.full-text');
+        const toggleBtn = commentContainer.querySelector('.toggle-btn');
+        
+        if (shortText.style.display === 'none') {
+            // 折りたたむ
+            shortText.style.display = 'inline';
+            fullText.style.display = 'none';
+            toggleBtn.textContent = 'もっと見る';
+        } else {
+            // 展開する
+            shortText.style.display = 'none';
+            fullText.style.display = 'inline';
+            toggleBtn.textContent = '折りたたむ';
+        }
+    }
+
+    /**
      * テーブルの共通表示処理
      * @param {string} type - テーブルの種類（'click', 'range', 'scene', 'feedback'）
      * @param {Array} data - 表示データ
@@ -69,6 +124,19 @@ class TableManager {
                     return options.feedbackFormatter(item, cursorStyle, color);
                 }
 
+                const truncated = this.truncateComment(item.comment);
+                const commentId = `comment-${type}-${item.id}`;
+                const commentHtml = truncated.isLong ? `
+                    <div id="${commentId}" class="comment-container">
+                        <span class="short-text">${truncated.text}</span>
+                        <span class="full-text" style="display: none;">${truncated.fullText}</span>
+                        <button class="btn btn-link btn-sm toggle-btn p-0" 
+                            onclick="TableManager.toggleComment('${commentId}', event)">
+                            もっと見る
+                        </button>
+                    </div>
+                ` : (item.comment || '');
+
                 // 既存の表示形式
                 return `
                     <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
@@ -80,7 +148,7 @@ class TableManager {
                         <td class="align-middle">${Number(item.click_time).toFixed(2)}s</td>
                         <td class="text-break align-middle">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="me-2">${item.comment || ''}</span>
+                                <span class="me-2">${commentHtml}</span>
                                 ${isOwnData ? `
                                     <button class="btn btn-sm btn-link p-0"
                                             onclick="TableManager.showCommentEditModal('${type}', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"

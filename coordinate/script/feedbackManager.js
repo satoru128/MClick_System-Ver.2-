@@ -32,6 +32,20 @@ class FeedbackManager {
                 const speaker = allUsers.find(user => user.user_id === item.speaker_id);
                 const speakerDisplay = speaker ? speaker.name : `ID: ${item.speaker_id || '---'}`;
                 
+                // コメントの処理
+                const truncated = TableManager.truncateComment(item.comment);
+                const commentId = `comment-feedback-${item.id}`;
+                const commentHtml = truncated.isLong ? `
+                    <div id="${commentId}" class="comment-container">
+                        <span class="short-text">${truncated.text}</span>
+                        <span class="full-text" style="display: none;">${truncated.fullText}</span>
+                        <button class="btn btn-link btn-sm toggle-btn p-0" 
+                            onclick="TableManager.toggleComment('${commentId}', event)">
+                            もっと見る
+                        </button>
+                    </div>
+                ` : (item.comment || '');
+                
                 return `
                     <tr style="${color ? `background-color: ${color.bg}; color: ${color.text};` : ''}">
                         <td class="clickable-cell align-middle" 
@@ -42,7 +56,7 @@ class FeedbackManager {
                         <td class="align-middle">${speakerDisplay}</td>
                         <td class="text-break align-middle">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="me-2">${item.comment || ''}</span>
+                                <span class="me-2">${commentHtml}</span>
                                 <button class="btn btn-sm btn-link p-0"
                                         onclick="TableManager.showCommentEditModal('feedback', ${item.id}, '${item.comment?.replace(/'/g, "\\'") || ''}')"
                                         title="コメントを編集">
