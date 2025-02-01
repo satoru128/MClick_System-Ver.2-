@@ -1,9 +1,6 @@
 <?php
 /**
  * ユーザー情報を取得するAPI
- * 
- * mode=currentの場合：現在のユーザーIDのみ返す
- * mode=allの場合：全ユーザー一覧を返す
  */
 require_once("MYDB.php");
 session_start();

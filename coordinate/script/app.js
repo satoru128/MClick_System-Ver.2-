@@ -438,7 +438,7 @@ function handleCanvasClick(event) {
     if (isDrawingRange) {
         return;
     }
-    
+
     // 座標取得モードがOFFの場合は処理しない
     if (!isCoordinateEnabled) {
         console.log('座標取得モード：OFF');

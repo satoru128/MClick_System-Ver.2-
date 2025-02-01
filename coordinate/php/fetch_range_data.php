@@ -1,8 +1,6 @@
 <?php
 /**
  * 範囲選択データを取得するAPI
- * 
- * データベースに保存されている範囲選択データを，記録時間順に取得し，JSONとして返す．
  */
 require_once("MYDB.php");
 header('Content-Type: application/json');

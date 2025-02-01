@@ -1,12 +1,9 @@
 <?php
-error_reporting(0); // または必要最小限のエラー報告に設定
+error_reporting(0); 
 ini_set('display_errors', 0);
 
 /**
  * データベース接続用の関数
- * 
- * データベースへの接続を行い，PDOオブジェクトを返す．
- * 接続に失敗した場合はエラーメッセージを表示する．
  */
 function db_connect(){
     // データベース接続に必要な情報

@@ -1,9 +1,6 @@
 <?php
 /**
  * リプレイ用のクリックデータを取得するAPI
- * 
- * 指定された動画IDとユーザーIDに基づいて，
- * クリックデータを時系列順に取得する．
  */
 header('Content-Type: application/json');
 error_reporting(0);

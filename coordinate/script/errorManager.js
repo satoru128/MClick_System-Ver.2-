@@ -3,7 +3,7 @@
  */
 class ErrorManager {
     /**
-     * エラータイプの定義（定数）
+     * エラータイプの定義
      */
     static ErrorTypes = {
         MODE_SWITCH: 'モード切り替え',
@@ -14,6 +14,33 @@ class ErrorManager {
         LIMIT: '制限',
         SUCCESS: '成功',
         CANCEL: '取消'
+    };
+
+    /**
+     * エラーメッセージのテンプレート
+     */
+    static Messages = {
+        REPLAY_MODE_OFF: 'リプレイモードを先にオフにしてください',
+        COORDINATE_MODE_OFF: '座標取得モードを先にオフにしてください',
+        NO_USER_SELECTED: 'ユーザーを選択してください',
+        MAX_USERS_LIMIT: `ユーザー選択の限度です`,
+        ENABLE_COORDINATE_MODE: '座標取得モードをオンにしてください',
+        NO_OPERATION_IN_REPLAY: 'リプレイ中は取り消せません',
+        FETCH_DATA_ERROR: 'データの取得に失敗しました',
+        USER_LIST_ERROR: 'ユーザー一覧の取得に失敗しました',
+        NO_CLICK_DATA: 'クリックデータがありません',
+        DELETE_ERROR: '削除に失敗しました',
+        LAST_CLICK_DELETED: '最後のクリックを取り消しました',
+        EXPORT_SUCCESS: 'データがエクスポートされました',
+        NO_EXPORT_DATA: 'エクスポートするデータがありません',
+        EXPORT_ERROR: 'エクスポートに失敗しました',
+        COMMENT_REQUIRED: 'コメントを入力してください',
+        COMMENT_UPDATED: 'コメントを更新しました',
+        COMMENT_SAVED: 'コメントを保存しました',
+        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました',
+        JUMP_ERROR: 'リプレイモード時のみジャンプ可能です',
+        NO_SPEAKER_SELECTED: '発言者を選択してください',
+        FEEDBACK_ERROR: '保存に失敗しました',
     };
 
     /**
@@ -75,32 +102,6 @@ class ErrorManager {
         }, 500);
     }
 
-    /**
-     * エラーメッセージのテンプレート
-     */
-    static Messages = {
-        REPLAY_MODE_OFF: 'リプレイモードを先にオフにしてください',
-        COORDINATE_MODE_OFF: '座標取得モードを先にオフにしてください',
-        NO_USER_SELECTED: 'ユーザーを選択してください',
-        MAX_USERS_LIMIT: `ユーザー選択の限度です`,
-        ENABLE_COORDINATE_MODE: '座標取得モードをオンにしてください',
-        NO_OPERATION_IN_REPLAY: 'リプレイ中は取り消せません',
-        FETCH_DATA_ERROR: 'データの取得に失敗しました',
-        USER_LIST_ERROR: 'ユーザー一覧の取得に失敗しました',
-        NO_CLICK_DATA: 'クリックデータがありません',
-        DELETE_ERROR: '削除に失敗しました',
-        LAST_CLICK_DELETED: '最後のクリックを取り消しました',
-        EXPORT_SUCCESS: 'データがエクスポートされました',
-        NO_EXPORT_DATA: 'エクスポートするデータがありません',
-        EXPORT_ERROR: 'エクスポートに失敗しました',
-        COMMENT_REQUIRED: 'コメントを入力してください',
-        COMMENT_UPDATED: 'コメントを更新しました',
-        COMMENT_SAVED: 'コメントを保存しました',
-        COMMENT_ERROR: 'コメントの保存中にエラーが発生しました',
-        JUMP_ERROR: 'リプレイモード時のみジャンプ可能です',
-        NO_SPEAKER_SELECTED: '発言者を選択してください',
-        FEEDBACK_ERROR: '保存に失敗しました',
-    };
 }
 
 // グローバルスコープで利用できるようにする

@@ -1,8 +1,6 @@
 <?php
 /**
  * シーン記録データを取得するAPI
- * 
- * データベースに保存されているシーン記録データを，記録時間順に取得し，JSONとして返す．
  */
 require_once("MYDB.php");
 header('Content-Type: application/json');
